@@ -123,6 +123,13 @@ to it.
   `localStorage` (`lib/joe-cool.ts`).
 - **About.** A short section above the footer, linked from the nav and footer. The wall
   loads every tile before jumping there, so the link lands even though the wall keeps growing.
+- **Play of the Week.** `src/data/play-of-the-week.ts` names this week's vote (2–4 plays from
+  the latest game, a closing time). The section above the wall lets each visitor vote once, then
+  shows live results; after it closes it shows the final results and winner
+  (`components/play-of-the-week.ts`). Votes are stored in the Durable Object via
+  `GET/POST /api/poll` (`worker/polls.ts`): only for the current, open poll and its candidates,
+  from this site, and at most 3 per poll from one connection (IPs held in memory only, never
+  stored). The weekly clip job opens a new poll every Tuesday.
 - **Last game.** `src/data/last-game.ts` names the most recent game (label, result, date) and
   lists the IDs of its clips and posts, which must also be in the clip lists. Those tiles are
   pinned to the top with a **Last game** label under a banner. The section hides itself 10 days
@@ -251,6 +258,7 @@ src/
   data/clips.ts            YouTube videos
   data/posts.ts            X posts
   data/schedule.ts         2026 schedule for the game-day banner
+  data/play-of-the-week.ts This week's Play of the Week vote
   components/wall.ts       Tile lifecycle: lazy players, pause/play, removal
   components/tile.ts       Tile DOM
   lib/youtube-api.ts       Loads the IFrame API once
@@ -262,6 +270,7 @@ src/
 public/                    Favicon, OG image, robots.txt, _headers
 worker/index.ts            Cloudflare Worker: /api/appreciate and the counter Durable Object
 worker/limits.ts           Request validation and per-visitor rate limiting
+worker/polls.ts            Play of the Week vote rules
 worker/espn.ts             ESPN scoreboard, box score and career stats parsers
 worker/records.ts          Bengals leaderboards, records he owns, achievements
 wrangler.jsonc             Worker, static assets, 404 page and Durable Object config

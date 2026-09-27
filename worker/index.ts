@@ -5,6 +5,8 @@
  *   GET  /api/appreciate          -> { count }
  *   POST /api/appreciate {taps:n} -> { count, accepted }
  *   GET  /api/live                -> { game, burrow, asOf }                      (ESPN, 20s cache)
+ *   GET  /api/poll                -> { id, tally, total, closed }                (10s cache)
+ *   POST /api/poll {poll,choice}  -> { id, tally, total, closed, voted }
  *   GET  /api/stats               -> { career, asOf, stale, justReached }        (ESPN, 10min cache)
  */
 import { DurableObject } from 'cloudflare:workers';
@@ -17,7 +19,9 @@ import {
   summaryUrl,
   type Career,
 } from './espn';
+import { PLAY_OF_THE_WEEK } from '../src/data/play-of-the-week';
 import { isAllowedOrigin, parseTaps, TapLimiter } from './limits';
+import { checkVote, fullTally, VoteLimiter } from './polls';
 import { achievements, type Achievement } from './records';
 
 export interface Env {
@@ -30,6 +34,7 @@ const READ_CACHE_SECONDS = 5;
 /** Live score refresh; every visitor polls, but ESPN and the counter see one request per window. */
 const LIVE_CACHE_SECONDS = 20;
 const STATS_CACHE_SECONDS = 600;
+const POLL_CACHE_SECONDS = 10;
 const ESPN_TIMEOUT_MS = 5_000;
 /** How long something he reached stays highlighted on the stats page. */
 const JUST_REACHED_MS = 7 * 24 * 60 * 60 * 1000;
@@ -43,6 +48,7 @@ interface StatsSnapshot {
 export class AppreciationCounter extends DurableObject<Env> {
   private count: number | null = null;
   private readonly limiter = new TapLimiter();
+  private readonly votes = new VoteLimiter();
 
   private async current(): Promise<number> {
     this.count ??= (await this.ctx.storage.get<number>('count')) ?? 0;
@@ -83,6 +89,24 @@ export class AppreciationCounter extends DurableObject<Env> {
     }
     if (changed) await this.ctx.storage.put('achievements', next);
     return next;
+  }
+
+  /** Stored vote counts for a poll. */
+  async tally(pollId: string): Promise<Record<string, number>> {
+    return (await this.ctx.storage.get<Record<string, number>>(`poll:${pollId}`)) ?? {};
+  }
+
+  /** Records a vote unless this visitor has used up their votes for the poll. */
+  async vote(
+    pollId: string,
+    choice: string,
+    visitor: string,
+  ): Promise<{ tally: Record<string, number>; voted: boolean }> {
+    const tally = await this.tally(pollId);
+    if (!this.votes.take(pollId, visitor)) return { tally, voted: false };
+    tally[choice] = (tally[choice] ?? 0) + 1;
+    await this.ctx.storage.put(`poll:${pollId}`, tally);
+    return { tally, voted: true };
   }
 
   /** Last good stats from ESPN, served (marked stale) if ESPN is down or changes shape. */
@@ -212,6 +236,48 @@ async function readStats(env: Env): Promise<{ body: unknown; ok: boolean }> {
     : { body: { error: 'stats unavailable' }, ok: false };
 }
 
+function pollBody(tally: Record<string, number>, extra: Record<string, unknown> = {}): unknown {
+  const poll = PLAY_OF_THE_WEEK;
+  if (!poll) return { id: null };
+  const full = fullTally(poll, tally);
+  return {
+    id: poll.id,
+    tally: full,
+    total: Object.values(full).reduce((a, b) => a + b, 0),
+    closed: Date.now() >= Date.parse(poll.closes),
+    ...extra,
+  };
+}
+
+async function readPoll(env: Env): Promise<{ body: unknown; ok: boolean }> {
+  if (!PLAY_OF_THE_WEEK) return { body: { id: null }, ok: true };
+  return { body: pollBody(await counter(env).tally(PLAY_OF_THE_WEEK.id)), ok: true };
+}
+
+async function castVote(request: Request, env: Env): Promise<Response> {
+  if (!isAllowedOrigin(request.headers.get('Origin'), request.url)) {
+    return json({ error: 'forbidden' }, { status: 403 });
+  }
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'invalid body' }, { status: 400 });
+  }
+  const check = checkVote(body, PLAY_OF_THE_WEEK, Date.now());
+  if (!check.ok || !PLAY_OF_THE_WEEK) {
+    return json(
+      { error: check.ok ? 'no poll' : check.error },
+      { status: check.ok ? 409 : check.status },
+    );
+  }
+  const visitor = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  const result = await counter(env).vote(PLAY_OF_THE_WEEK.id, check.choice, visitor);
+  return json(pollBody(result.tally, { voted: result.voted }), {
+    status: result.voted ? 200 : 429,
+  });
+}
+
 async function addTaps(request: Request, env: Env): Promise<Response> {
   if (!isAllowedOrigin(request.headers.get('Origin'), request.url)) {
     return json({ error: 'forbidden' }, { status: 403 });
@@ -243,6 +309,16 @@ export default {
     }
     if (request.method === 'GET' && url.pathname === '/api/live') {
       return cachedJson(request, ctx, LIVE_CACHE_SECONDS, () => readLive());
+    }
+    if (url.pathname === '/api/poll') {
+      if (request.method === 'GET') {
+        return cachedJson(request, ctx, POLL_CACHE_SECONDS, () => readPoll(env));
+      }
+      if (request.method === 'POST') return castVote(request, env);
+      return json(
+        { error: 'method not allowed' },
+        { status: 405, headers: { Allow: 'GET, POST' } },
+      );
     }
     if (request.method === 'GET' && url.pathname === '/api/stats') {
       return cachedJson(request, ctx, STATS_CACHE_SECONDS, () => readStats(env));
