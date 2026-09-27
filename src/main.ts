@@ -4,11 +4,13 @@ import '@fontsource/barlow-condensed/latin-700.css';
 import './styles/index.css';
 
 import { initAppreciate } from './components/appreciate';
+import { initGameDay } from './components/gameday';
 import { createWall } from './components/wall';
 import { CONFIG } from './config';
 import { CLIPS } from './data/clips';
 import { LAST_GAME } from './data/last-game';
 import { POSTS } from './data/posts';
+import { SCHEDULE } from './data/schedule';
 import { isLastGameCurrent } from './lib/last-game';
 import { createSeenStore } from './lib/seen';
 
@@ -111,6 +113,7 @@ function init(): void {
     mine: requireElement('.appreciate__mine', HTMLElement),
   });
 
+  initGameDay(requireElement('#gameday', HTMLParagraphElement), SCHEDULE);
   renderPhoto();
   updateToggle();
   updateHoverSound();
