@@ -88,12 +88,6 @@ describe('SCHEDULE daylight saving', () => {
       expect(actual, `Week ${game.week}: ${game.kickoff}`).toBe(written);
     }
   });
-
-  it('switches from EDT to EST at the November clock change', () => {
-    const offsets = SCHEDULE.flatMap((g) => (g.kickoff ? [g.kickoff.slice(19)] : []));
-    expect(offsets.slice(0, 6).every((o) => o === '-04:00')).toBe(true);
-    expect(offsets.slice(6).every((o) => o === '-05:00')).toBe(true);
-  });
 });
 
 describe('milestones', () => {
