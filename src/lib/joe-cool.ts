@@ -25,11 +25,25 @@ export function initJoeCool(): void {
   const root = document.documentElement;
   const buttons = [...document.querySelectorAll<HTMLButtonElement>('[data-joe-cool-toggle]')];
 
+  // A styled tooltip under each toggle (shown on hover and keyboard focus, see base.css). The
+  // button's own label already says "Joe Cool mode", so the tip is hidden from screen readers.
+  const tips = buttons.map((button) => {
+    const tip = document.createElement('span');
+    tip.className = 'sitenav__tip';
+    tip.setAttribute('aria-hidden', 'true');
+    button.append(tip);
+    return tip;
+  });
+
   function apply(on: boolean): void {
     root.classList.toggle('joe-cool', on);
-    for (const button of buttons) {
-      button.setAttribute('aria-pressed', String(on));
-      button.title = on ? 'Turn off Joe Cool mode' : 'Joe Cool mode';
+    for (const button of buttons) button.setAttribute('aria-pressed', String(on));
+    for (const tip of tips) {
+      const title = document.createElement('strong');
+      title.textContent = on ? 'Turn off Joe Cool mode' : 'Joe Cool mode';
+      const detail = document.createElement('span');
+      detail.textContent = on ? 'Back to Bengals orange' : 'Ice-blue theme + shades';
+      tip.replaceChildren(title, detail);
     }
   }
 
