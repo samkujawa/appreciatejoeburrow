@@ -5,6 +5,7 @@ import './styles/index.css';
 
 import { initAppreciate } from './components/appreciate';
 import { initGameDay } from './components/gameday';
+import { initJoeCool } from './lib/joe-cool';
 import { createWall } from './components/wall';
 import { CONFIG } from './config';
 import { CLIPS } from './data/clips';
@@ -28,10 +29,19 @@ function renderPhoto(): void {
   img.alt = 'Joe Burrow';
   img.width = 128;
   img.height = 128;
+  const wrap = document.createElement('span');
+  wrap.className = 'masthead__photo-wrap';
+  // Sunglasses for Joe Cool mode; CSS shows them only when the mode is on.
+  wrap.innerHTML = `<svg class="masthead__shades" viewBox="0 0 100 34" aria-hidden="true">
+    <path d="M2 4h96v6H2z" fill="#0b0b0b"/>
+    <path d="M5 8h40c0 14-8 24-20 24S5 22 5 8zM55 8h40c0 14-8 24-20 24S55 22 55 8z" fill="#0b0b0b"/>
+    <path d="M12 13l8-2M62 13l8-2" stroke="#9fe3ff" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>`;
   img.addEventListener('error', () => {
-    img.remove();
+    wrap.remove();
   });
-  requireElement('.masthead', HTMLElement).prepend(img);
+  wrap.prepend(img);
+  requireElement('.masthead', HTMLElement).prepend(wrap);
 }
 
 function init(): void {
@@ -126,6 +136,7 @@ function init(): void {
     goToAbout();
   });
 
+  initJoeCool();
   initGameDay(requireElement('#gameday', HTMLParagraphElement), SCHEDULE);
   renderPhoto();
   updateToggle();

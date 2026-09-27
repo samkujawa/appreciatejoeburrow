@@ -9,6 +9,7 @@ import type { Career, Season } from '../worker/espn';
 import { SCHEDULE } from './data/schedule';
 import { choosePace, describeArrival, describePace, projectArrival } from './lib/projection';
 import { nextMilestone } from './lib/stat-milestones';
+import { initJoeCool } from './lib/joe-cool';
 import {
   LADDERS,
   ladderStatus,
@@ -429,4 +430,5 @@ async function init(): Promise<void> {
   root.setAttribute('aria-busy', 'false');
 }
 
+initJoeCool();
 void init();

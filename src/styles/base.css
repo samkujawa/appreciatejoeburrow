@@ -180,3 +180,36 @@ img {
 html {
   scroll-padding-top: 64px;
 }
+
+.sitenav__cool {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.sitenav__cool svg {
+  width: 30px;
+  height: 14px;
+}
+.sitenav__cool:hover,
+.sitenav__cool[aria-pressed='true'] {
+  color: var(--color-orange);
+}
+.sitenav__cool[aria-pressed='true'] {
+  background: rgb(127 211 255 / 0.12);
+}
+
+/* Show one of two texts depending on Joe Cool mode. */
+.cool-on,
+:root.joe-cool .cool-off {
+  display: none;
+}
+:root.joe-cool .cool-on {
+  display: inline;
+}

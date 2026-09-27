@@ -112,6 +112,10 @@ to it.
   `base.css`): Highlights · Stats · About, with the current page underlined, plus an Instagram
   link to [@appreciatejoeburrow](https://www.instagram.com/appreciatejoeburrow/) (also in the
   footers).
+- **Joe Cool mode.** The sunglasses button in the nav (every page) switches to an ice-blue
+  "Joe Brrr" theme with sunglasses on the headshot and a new tagline; typing "joecool" also
+  toggles it. It's a class on `<html>` that swaps the color tokens (`tokens.css`), remembered in
+  `localStorage` (`lib/joe-cool.ts`).
 - **About.** A short section above the footer, linked from the nav and footer. The wall
   loads every tile before jumping there, so the link lands even though the wall keeps growing.
 - **Last game.** `src/data/last-game.ts` names the most recent game (label, result, date) and
