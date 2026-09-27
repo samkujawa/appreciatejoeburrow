@@ -176,14 +176,17 @@ export async function renderCard(
     y += 10;
   }
 
-  // Site name above the bottom stripes.
+  // Site name and handle above the bottom stripes, placed by baseline with room for descenders.
+  const stripesTop = CARD_HEIGHT - 56;
+  const handleBaseline = stripesTop - 60;
+  ctx.textBaseline = 'alphabetic';
   ctx.letterSpacing = '5px';
   ctx.font = `700 40px ${LABEL}`;
   ctx.fillStyle = BONE;
-  ctx.fillText('APPRECIATEJOEBURROW.COM', cx, CARD_HEIGHT - 150);
+  ctx.fillText('APPRECIATEJOEBURROW.COM', cx, handleBaseline - 58);
   ctx.font = `500 34px ${LABEL}`;
   ctx.fillStyle = MUTED;
-  ctx.fillText('@appreciatejoeburrow', cx, CARD_HEIGHT - 100);
+  ctx.fillText('@appreciatejoeburrow', cx, handleBaseline);
   return canvas;
 }
 
