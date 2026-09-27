@@ -256,3 +256,25 @@
     transform: translate(var(--drift, 0), 105vh) rotate(var(--spin, 360deg));
   }
 }
+
+/* Headshot wrapper, so Joe Cool mode can put sunglasses on it. */
+.masthead__photo-wrap {
+  position: relative;
+  display: inline-block;
+}
+.masthead__shades {
+  position: absolute;
+  left: 27%;
+  top: 35%;
+  width: 46%;
+  opacity: 0;
+  transform: translateY(-60px) rotate(-8deg);
+  transition:
+    opacity 0.25s,
+    transform 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+  pointer-events: none;
+}
+:root.joe-cool .masthead__shades {
+  opacity: 1;
+  transform: none;
+}

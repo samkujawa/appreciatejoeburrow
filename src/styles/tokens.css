@@ -17,3 +17,13 @@
   --tile-min: 340px;
   --stripe-height: 22px;
 }
+
+/* Joe Cool mode ("Joe Brrr"): the orange accents turn ice blue on a colder black. */
+:root.joe-cool {
+  --color-orange: #7fd3ff;
+  --color-orange-deep: #3a9fd6;
+  --color-ink: #070b10;
+  --color-ink-raised: #0f1820;
+  --color-bone: #eef8ff;
+  --color-muted: #8fa7b8;
+}
