@@ -5,7 +5,13 @@ import { isFatalPlayerError, pickStartSeconds, watchUrl } from '../lib/playback'
 import type { SeenStore } from '../lib/seen';
 import { loadXWidgets } from '../lib/x-widgets';
 import { loadYouTubeApi } from '../lib/youtube-api';
-import { createClipTile, createPostTile, setTileState, type TileElements } from './tile';
+import {
+  createClipTile,
+  createPostTile,
+  setTileState,
+  type ClipTileElements,
+  type TileElements,
+} from './tile';
 
 export interface WallOptions {
   preloadMargin: string;
@@ -29,7 +35,7 @@ interface BaseTile extends TileElements {
   visible: boolean;
 }
 
-interface ClipTile extends BaseTile {
+interface ClipTile extends BaseTile, ClipTileElements {
   kind: 'clip';
   clip: Clip;
   player: YT.Player | null;
@@ -50,6 +56,10 @@ export interface Wall {
   render(): void;
   setPaused(paused: boolean): void;
   setPageHidden(hidden: boolean): void;
+  /** Desktop mode where hovering a video plays its sound. Enable it from a click (see README). */
+  setHoverSound(enabled: boolean): void;
+  /** Mutes whichever video currently has sound. */
+  muteAll(): void;
   destroy(): void;
 }
 
@@ -74,6 +84,9 @@ export function createWall(
   let order: WallItem[] = [];
   let nextIndex = 0;
   let paused = options.startPaused;
+  /** The one video allowed to play sound; everything else stays muted. */
+  let soundTile: ClipTile | null = null;
+  let hoverSound = false;
   let pageHidden = document.hidden;
   // Bumped on every render so async work from an old layout can tell it's stale.
   let generation = 0;
@@ -113,7 +126,33 @@ export function createWall(
   resizeObserver.observe(root);
 
   function shouldPlay(tile: ClipTile): boolean {
-    return !paused && !pageHidden && tile.visible;
+    // Turning a video's sound on also plays it, even while everything else is paused.
+    return (!paused || tile === soundTile) && !pageHidden && tile.visible;
+  }
+
+  /** Mutes or unmutes a tile's player to match `soundTile`, and updates its button. */
+  function applySound(tile: ClipTile): void {
+    const audible = tile === soundTile;
+    tile.sound.setAttribute('aria-pressed', String(audible));
+    tile.root.classList.toggle('tile--audible', audible);
+    if (!tile.player || !tile.ready) return;
+    if (audible) {
+      tile.player.unMute();
+      tile.player.setVolume(100);
+    } else {
+      tile.player.mute();
+    }
+  }
+
+  function setSoundTile(tile: ClipTile | null): void {
+    const previous = soundTile;
+    if (previous === tile) return;
+    soundTile = tile;
+    for (const t of [previous, tile]) {
+      if (!t) continue;
+      applySound(t);
+      syncPlayback(t);
+    }
   }
 
   function syncPlayback(tile: Tile): void {
@@ -132,7 +171,11 @@ export function createWall(
       const tile = byElement.get(entry.target);
       if (!tile) continue;
       tile.visible = entry.isIntersecting;
-      if (tile.kind === 'clip') scheduleUnmount(tile);
+      if (tile.kind === 'clip') {
+        // Sound follows what's on screen: a video that scrolls away goes quiet.
+        if (!tile.visible && tile === soundTile) setSoundTile(null);
+        scheduleUnmount(tile);
+      }
       if (tile.visible && !tile.ready && !tile.mounting) {
         if (tile.kind === 'clip' && !tile.player) void mountPlayer(tile);
         else if (tile.kind === 'post') void mountPost(tile);
@@ -157,6 +200,7 @@ export function createWall(
   }
 
   function unmountPlayer(tile: ClipTile): void {
+    if (tile === soundTile) setSoundTile(null);
     const frame = tile.player?.getIframe().parentElement ?? null;
     try {
       tile.player?.destroy();
@@ -216,6 +260,8 @@ export function createWall(
           tile.ready = true;
           tile.mounting = false;
           setTileState(tile.root, 'ready');
+          // Sound may have been turned on while the player was still loading.
+          applySound(tile);
           syncPlayback(tile);
         },
         onStateChange: ({ target, data }) => {
@@ -272,6 +318,7 @@ export function createWall(
     observer.unobserve(tile.root);
     seenObserver.unobserve(tile.root);
     if (tile.kind !== 'clip') return;
+    if (tile === soundTile) soundTile = null;
     if (tile.unmountTimer !== null) window.clearTimeout(tile.unmountTimer);
     tile.unmountTimer = null;
     try {
@@ -327,7 +374,24 @@ export function createWall(
             post: item.post,
           };
     byElement.set(tile.root, tile);
+    if (tile.kind === 'clip') wireSound(tile);
     return tile;
+  }
+
+  function wireSound(tile: ClipTile): void {
+    const toggle = (): void => {
+      setSoundTile(soundTile === tile ? null : tile);
+    };
+    tile.sound.addEventListener('click', toggle);
+    tile.hit.addEventListener('click', toggle);
+    // Hover mode only ever runs with a mouse; touch taps fire pointer events too. The tile's `hit`
+    // layer keeps these events in this page instead of inside YouTube's iframe.
+    tile.root.addEventListener('pointerenter', (event) => {
+      if (hoverSound && event.pointerType === 'mouse') setSoundTile(tile);
+    });
+    tile.root.addEventListener('pointerleave', (event) => {
+      if (hoverSound && event.pointerType === 'mouse' && soundTile === tile) setSoundTile(null);
+    });
   }
 
   function addBatch(): void {
@@ -379,6 +443,13 @@ export function createWall(
     setPageHidden(value) {
       pageHidden = value;
       tiles.forEach(syncPlayback);
+    },
+    setHoverSound(enabled) {
+      hoverSound = enabled;
+      if (!enabled) setSoundTile(null);
+    },
+    muteAll() {
+      setSoundTile(null);
     },
     destroy() {
       generation += 1;

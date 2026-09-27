@@ -29,7 +29,31 @@ function createLink(href: string, title: string, destination: string): HTMLAncho
   return link;
 }
 
-export function createClipTile(clip: Clip): TileElements {
+export interface ClipTileElements extends TileElements {
+  /** Toggles this video's sound. Its aria-pressed reflects whether the tile is audible. */
+  sound: HTMLButtonElement;
+  /**
+   * Transparent layer over the player. It keeps pointer events in this page (the YouTube iframe
+   * would swallow them, breaking hover sound between tiles), hides YouTube's hover chrome, and
+   * makes a click or tap anywhere on the video toggle its sound. Not focusable: `sound` is the
+   * accessible control.
+   */
+  hit: HTMLElement;
+}
+
+// Static speaker icons; CSS shows one or the other based on the button's aria-pressed.
+const SPEAKER_ICONS = `
+<svg class="tile__sound-off" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>
+  <path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>
+<svg class="tile__sound-on" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>
+  <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round"/>
+</svg>`;
+
+export function createClipTile(clip: Clip): ClipTileElements {
   const root = document.createElement('article');
   root.className = 'tile tile--clip';
   root.dataset.videoId = clip.id;
@@ -54,9 +78,20 @@ export function createClipTile(clip: Clip): TileElements {
   const mount = document.createElement('div');
   frame.append(mount);
 
+  const hit = document.createElement('div');
+  hit.className = 'tile__hit';
+  hit.setAttribute('aria-hidden', 'true');
+
+  const sound = document.createElement('button');
+  sound.type = 'button';
+  sound.className = 'tile__sound';
+  sound.setAttribute('aria-pressed', 'false');
+  sound.setAttribute('aria-label', `Sound: ${clip.title}`);
+  sound.innerHTML = SPEAKER_ICONS;
+
   const link = createLink(watchUrl(clip.id), clip.title, 'YouTube');
-  root.append(thumb, frame, link);
-  return { root, mount, link };
+  root.append(thumb, frame, hit, sound, link);
+  return { root, mount, link, sound, hit };
 }
 
 export function createPostTile(post: Post): TileElements {

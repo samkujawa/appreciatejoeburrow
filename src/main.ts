@@ -34,9 +34,13 @@ function init(): void {
   const status = requireElement('#wall-status', HTMLParagraphElement);
   const reshuffle = requireElement('#reshuffle', HTMLButtonElement);
   const togglePlay = requireElement('#toggle-play', HTMLButtonElement);
+  const hoverSoundToggle = requireElement('#hover-sound', HTMLButtonElement);
 
-  // Motion-sensitive visitors start paused; they can press play themselves.
-  let paused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Motion-sensitive visitors, and phones in data-saver mode, start paused; they can press play.
+  const saveData =
+    (navigator as { connection?: { saveData?: boolean } }).connection?.saveData === true;
+  let paused = window.matchMedia('(prefers-reduced-motion: reduce)').matches || saveData;
+  let hoverSound = false;
 
   const wall = createWall(wallEl, CLIPS, POSTS, {
     preloadMargin: CONFIG.preloadMargin,
@@ -57,6 +61,11 @@ function init(): void {
     togglePlay.setAttribute('aria-pressed', String(paused));
   }
 
+  function updateHoverSound(): void {
+    hoverSoundToggle.textContent = `Sound on hover: ${hoverSound ? 'on' : 'off'}`;
+    hoverSoundToggle.setAttribute('aria-pressed', String(hoverSound));
+  }
+
   reshuffle.addEventListener('click', () => {
     wall.render();
   });
@@ -65,12 +74,24 @@ function init(): void {
     wall.setPaused(paused);
     updateToggle();
   });
+  // Browsers only allow sound after the visitor clicks or taps something, so hover sound is an
+  // opt-in switch: the click that turns it on is what unlocks audio. Not remembered across
+  // visits for the same reason. The button is hidden on touch screens (see base.css).
+  hoverSoundToggle.addEventListener('click', () => {
+    hoverSound = !hoverSound;
+    wall.setHoverSound(hoverSound);
+    updateHoverSound();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') wall.muteAll();
+  });
   document.addEventListener('visibilitychange', () => {
     wall.setPageHidden(document.hidden);
   });
 
   renderPhoto();
   updateToggle();
+  updateHoverSound();
   wall.render();
 }
 
