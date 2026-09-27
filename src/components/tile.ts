@@ -110,6 +110,15 @@ export function createPostTile(post: Post): TileElements {
   return { root, mount, link };
 }
 
+/** Small label in the tile's top-left corner, e.g. "Last game". */
+export function addTileBadge(root: HTMLElement, text: string): void {
+  const badge = document.createElement('span');
+  badge.className = 'tile__badge';
+  badge.textContent = text;
+  root.classList.add('tile--badged');
+  root.prepend(badge);
+}
+
 export function setTileState(root: HTMLElement, state: TileState): void {
   root.dataset.state = state;
 }

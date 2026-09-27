@@ -1,3 +1,27 @@
+/* Banner above the wall naming the game whose tiles are pinned first. */
+.last-game {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px 12px;
+  margin: 0 var(--wall-gap) 10px;
+  padding: 10px var(--gutter);
+  border-top: 2px solid var(--color-orange);
+  border-bottom: 2px solid var(--color-orange);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.last-game__tag {
+  padding: 3px 8px 2px;
+  background: var(--color-orange);
+  color: var(--color-ink);
+}
+.last-game__result {
+  color: var(--color-orange);
+}
+
 .wall {
   /* Masonry built in JS (components/wall.ts): tiles go into the shortest column, so the reading
      order runs across rows and the first row is always the first few tiles. */
@@ -72,6 +96,21 @@
 }
 .tile[data-state='ready'] .tile__frame {
   opacity: 1;
+}
+
+/* Top-left label on pinned tiles ("Last game"). Above the hit layer; clicks pass through. */
+.tile__badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  padding: 5px 9px 4px;
+  background: var(--color-orange);
+  color: var(--color-ink);
+  font: 700 0.75rem/1.2 var(--font-label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
 }
 
 /* Sits over the player so pointer events stay in this page; click or tap toggles sound. */

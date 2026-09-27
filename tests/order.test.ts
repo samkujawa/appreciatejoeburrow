@@ -55,3 +55,22 @@ describe('orderWall', () => {
     expect(ids(everything, 4, 1)).not.toEqual(ids(everything, 4, 2));
   });
 });
+
+describe('orderWall pinning', () => {
+  it('puts pinned items first, in the given order, and never repeats them', () => {
+    const out = orderWall(clips, posts, {
+      seen: new Set(['post3']),
+      leadClips: 4,
+      pinned: ['post3', 'clip7'],
+      rng: seededRng(3),
+    }).map((item) => (item.kind === 'clip' ? item.clip.id : item.post.id));
+    expect(out.slice(0, 2)).toEqual(['post3', 'clip7']);
+    expect(out).toHaveLength(16);
+    expect(new Set(out).size).toBe(16);
+  });
+
+  it('ignores pinned IDs that are not in the lists', () => {
+    const out = orderWall(clips, posts, { seen: new Set(), leadClips: 4, pinned: ['missing'] });
+    expect(out).toHaveLength(16);
+  });
+});

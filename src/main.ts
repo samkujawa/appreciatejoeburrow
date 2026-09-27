@@ -6,7 +6,9 @@ import './styles/index.css';
 import { createWall } from './components/wall';
 import { CONFIG } from './config';
 import { CLIPS } from './data/clips';
+import { LAST_GAME } from './data/last-game';
 import { POSTS } from './data/posts';
+import { isLastGameCurrent } from './lib/last-game';
 import { createSeenStore } from './lib/seen';
 
 function requireElement<T extends HTMLElement>(selector: string, type: new () => T): T {
@@ -35,6 +37,14 @@ function init(): void {
   const reshuffle = requireElement('#reshuffle', HTMLButtonElement);
   const togglePlay = requireElement('#toggle-play', HTMLButtonElement);
   const hoverSoundToggle = requireElement('#hover-sound', HTMLButtonElement);
+  const lastGameBanner = requireElement('#last-game', HTMLParagraphElement);
+
+  const lastGame = isLastGameCurrent(LAST_GAME, new Date(), CONFIG.lastGameDays) ? LAST_GAME : null;
+  if (lastGame) {
+    lastGameBanner.querySelector('.last-game__label')?.append(lastGame.label);
+    lastGameBanner.querySelector('.last-game__result')?.append(lastGame.result);
+    lastGameBanner.hidden = false;
+  }
 
   // Motion-sensitive visitors, and phones in data-saver mode, start paused; they can press play.
   const saveData =
@@ -52,6 +62,7 @@ function init(): void {
     maxEmbedsPerColumn: CONFIG.maxEmbedsPerColumn,
     batchSize: CONFIG.batchSize,
     seen: createSeenStore(CONFIG.seenMemory),
+    ...(lastGame ? { pinned: { ids: lastGame.ids, label: 'Last game' } } : {}),
     onTileCountChange: (count) => {
       status.hidden = count > 0;
       status.textContent = count > 0 ? '' : 'No highlights could be loaded. Try again later.';

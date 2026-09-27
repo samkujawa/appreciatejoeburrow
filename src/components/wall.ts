@@ -6,6 +6,7 @@ import type { SeenStore } from '../lib/seen';
 import { loadXWidgets } from '../lib/x-widgets';
 import { loadYouTubeApi } from '../lib/youtube-api';
 import {
+  addTileBadge,
   createClipTile,
   createPostTile,
   setTileState,
@@ -31,6 +32,8 @@ export interface WallOptions {
   batchSize: number;
   /** Tracks what this visitor has seen so the next visit leads with fresh tiles. */
   seen: SeenStore;
+  /** IDs pinned to the top of the wall with a label (the last game), in order. */
+  pinned?: { ids: readonly string[]; label: string };
   /** Called whenever the number of tiles (shown plus not yet loaded) changes. */
   onTileCountChange?: (count: number) => void;
 }
@@ -447,6 +450,7 @@ export function createWall(
             post: item.post,
           };
     byElement.set(tile.root, tile);
+    if (options.pinned?.ids.includes(tile.id)) addTileBadge(tile.root, options.pinned.label);
     if (tile.kind === 'clip') wireSound(tile);
     return tile;
   }
@@ -503,7 +507,11 @@ export function createWall(
   function render(): void {
     // Lead with a full row of videos, and at least a few on narrow screens with one column.
     const leadClips = Math.max(columnCount(), 3);
-    order = orderWall(clips, posts, { seen: options.seen.load(), leadClips });
+    order = orderWall(clips, posts, {
+      seen: options.seen.load(),
+      leadClips,
+      pinned: options.pinned?.ids ?? [],
+    });
     layout();
   }
 
