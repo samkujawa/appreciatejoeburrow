@@ -29,3 +29,19 @@
   letter-spacing: 0.02em;
   opacity: 0.8;
 }
+
+.footer .footer__credit {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.footer__credit a {
+  color: inherit;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--color-orange);
+}
+.footer__credit a:hover {
+  color: var(--color-orange);
+}
