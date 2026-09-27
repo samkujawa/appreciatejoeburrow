@@ -44,11 +44,17 @@ npm run dev      # http://localhost:5173
   no controls. When a player is ready it jumps to a random point in the video, so long
   compilations show different plays each visit. When a video ends it jumps to a new random
   point instead of restarting at 0:00.
-- **Performance.** Tiles are added in batches of 24 as the visitor nears the end of the wall.
-  Players are only created when a tile scrolls within 300px of the viewport, pause when they
-  leave the screen or the tab is hidden, and are destroyed back to their thumbnail after 20
-  seconds off screen, so scrolling through ~100 videos never leaves ~100 players alive. All of
-  these numbers are in `src/config.ts`.
+- **Performance and memory.** Every YouTube player and X post is a full page in an iframe, and
+  iOS Safari kills the tab ("A problem repeatedly occurred") when too many pile up. So:
+  - Tiles are added in batches of 24 as the visitor nears the end of the wall.
+  - An embed only loads after its tile has stayed on screen for 350ms, so fast scrolling skips it.
+  - Embeds are torn down 4 seconds after leaving the screen (videos go back to their thumbnail;
+    X posts keep their height so nothing jumps).
+  - At most 6 embeds per column are alive at once (6 on a phone); the ones off screen longest go
+    first. Measured on a phone-sized screen, scrolling the whole wall now peaks at 6 live embeds
+    instead of ~87.
+  - Players pause when off screen or when the tab is hidden. All of these numbers are in
+    `src/config.ts`.
 - **Sound.** Everything starts muted. Each video has a speaker button (always visible on touch
   screens, 44px), and clicking or tapping anywhere on a video toggles its sound. Only one video is
   audible at a time; it gets an orange frame, plays even when **Pause all** is on, and goes

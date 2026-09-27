@@ -47,7 +47,9 @@ function init(): void {
     apiTimeoutMs: CONFIG.apiTimeoutMs,
     endBufferSeconds: CONFIG.endBufferSeconds,
     startPaused: paused,
+    mountDelayMs: CONFIG.mountDelayMs,
     unmountAfterMs: CONFIG.unmountAfterMs,
+    maxEmbedsPerColumn: CONFIG.maxEmbedsPerColumn,
     batchSize: CONFIG.batchSize,
     seen: createSeenStore(CONFIG.seenMemory),
     onTileCountChange: (count) => {

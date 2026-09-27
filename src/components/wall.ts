@@ -18,8 +18,15 @@ export interface WallOptions {
   apiTimeoutMs: number;
   endBufferSeconds: number;
   startPaused: boolean;
-  /** A video off screen this long is torn down back to its thumbnail to free memory. */
+  /** An embed must stay on screen this long before it loads, so fast scrolling skips it. */
+  mountDelayMs: number;
+  /** An embed off screen this long is torn down (video back to its thumbnail) to free memory. */
   unmountAfterMs: number;
+  /**
+   * Most embeds (YouTube players plus X posts) alive per column. Each one is a full page in an
+   * iframe; iOS Safari kills the tab ("A problem repeatedly occurred") well before desktops do.
+   */
+  maxEmbedsPerColumn: number;
   /** Tiles added per batch; the next batch loads as the visitor nears the end of the wall. */
   batchSize: number;
   /** Tracks what this visitor has seen so the next visit leads with fresh tiles. */
@@ -30,17 +37,24 @@ export interface WallOptions {
 
 interface BaseTile extends TileElements {
   id: string;
-  mounting: boolean;
+  /** An embed (player or X post) exists or is being created. */
+  live: boolean;
   ready: boolean;
   visible: boolean;
+  /** Bumped on every unmount, so an in-flight mount can tell it was cancelled. */
+  epoch: number;
+  /** When the tile last left the screen, for evicting the longest-gone embeds first. */
+  hiddenSince: number;
+  /** Pending mount, waiting to see if the tile stays on screen. */
+  mountTimer: number | null;
+  /** Pending teardown for an embed that has scrolled away; cleared if it comes back. */
+  unmountTimer: number | null;
 }
 
 interface ClipTile extends BaseTile, ClipTileElements {
   kind: 'clip';
   clip: Clip;
   player: YT.Player | null;
-  /** Pending teardown for a player that has scrolled away; cleared if it comes back. */
-  unmountTimer: number | null;
 }
 
 /** X embeds are click-to-play, so post tiles only need mounting, never pausing. */
@@ -171,32 +185,73 @@ export function createWall(
       const tile = byElement.get(entry.target);
       if (!tile) continue;
       tile.visible = entry.isIntersecting;
-      if (tile.kind === 'clip') {
+      clearTimers(tile);
+      if (tile.visible) {
+        scheduleMount(tile);
+      } else {
+        tile.hiddenSince = performance.now();
         // Sound follows what's on screen: a video that scrolls away goes quiet.
-        if (!tile.visible && tile === soundTile) setSoundTile(null);
+        if (tile === soundTile) setSoundTile(null);
         scheduleUnmount(tile);
-      }
-      if (tile.visible && !tile.ready && !tile.mounting) {
-        if (tile.kind === 'clip' && !tile.player) void mountPlayer(tile);
-        else if (tile.kind === 'post') void mountPost(tile);
       }
       syncPlayback(tile);
     }
   }
 
-  /**
-   * Long walls would otherwise pile up dozens of paused players. Once a video has been off screen
-   * for a while, destroy it and show the thumbnail again; it remounts when scrolled back to.
-   */
-  function scheduleUnmount(tile: ClipTile): void {
+  function clearTimers(tile: Tile): void {
+    if (tile.mountTimer !== null) window.clearTimeout(tile.mountTimer);
     if (tile.unmountTimer !== null) window.clearTimeout(tile.unmountTimer);
+    tile.mountTimer = null;
     tile.unmountTimer = null;
-    if (tile.visible || !tile.player) return;
+  }
+
+  /** Mounts a tile's embed once it has stayed on screen briefly, making room under the cap. */
+  function scheduleMount(tile: Tile): void {
+    if (tile.live) return;
+    tile.mountTimer = window.setTimeout(() => {
+      tile.mountTimer = null;
+      if (!tile.visible || tile.live) return;
+      makeRoom();
+      if (tile.kind === 'clip') void mountPlayer(tile);
+      else void mountPost(tile);
+    }, options.mountDelayMs);
+  }
+
+  /**
+   * Long walls would otherwise pile up dozens of embeds. Once one has been off screen for a
+   * while, tear it down; it mounts again when scrolled back to.
+   */
+  function scheduleUnmount(tile: Tile): void {
+    if (!tile.live) return;
     tile.unmountTimer = window.setTimeout(() => {
       tile.unmountTimer = null;
-      if (tile.visible) return;
-      unmountPlayer(tile);
+      if (!tile.visible) unmountEmbed(tile);
     }, options.unmountAfterMs);
+  }
+
+  /** Enforces the embed cap by tearing down off-screen embeds, longest gone first. */
+  function makeRoom(): void {
+    const cap = options.maxEmbedsPerColumn * Math.max(1, columns.length);
+    const live = tiles.filter((t) => t.live);
+    if (live.length < cap) return;
+    const evictable = live.filter((t) => !t.visible).sort((a, b) => a.hiddenSince - b.hiddenSince);
+    for (const tile of evictable.slice(0, live.length - cap + 1)) unmountEmbed(tile);
+  }
+
+  function unmountEmbed(tile: Tile): void {
+    clearTimers(tile);
+    tile.epoch += 1;
+    tile.live = false;
+    tile.ready = false;
+    if (tile.kind === 'clip') {
+      unmountPlayer(tile);
+    } else {
+      // Hold the rendered height so the page doesn't jump when posts above the viewport unload.
+      const height = tile.root.offsetHeight;
+      if (height > 0) tile.root.style.minHeight = `${height}px`;
+      tile.mount.replaceChildren();
+    }
+    setTileState(tile.root, 'idle');
   }
 
   function unmountPlayer(tile: ClipTile): void {
@@ -208,20 +263,19 @@ export function createWall(
       // Player may already be torn down by YouTube; nothing to clean up.
     }
     tile.player = null;
-    tile.ready = false;
-    tile.mounting = false;
     // The API replaced the mount element with its iframe, so give the next player a fresh one.
     if (frame) {
       const mount = document.createElement('div');
       frame.replaceChildren(mount);
       tile.mount = mount;
     }
-    setTileState(tile.root, 'idle');
   }
 
   async function mountPlayer(tile: ClipTile): Promise<void> {
     const gen = generation;
-    tile.mounting = true;
+    const epoch = tile.epoch;
+    const current = (): boolean => gen === generation && epoch === tile.epoch;
+    tile.live = true;
     setTileState(tile.root, 'loading');
 
     let api: typeof YT;
@@ -229,11 +283,13 @@ export function createWall(
       api = await loadYouTubeApi(options.apiTimeoutMs);
     } catch (error) {
       console.warn(error);
-      if (gen === generation) setTileState(tile.root, 'offline');
-      tile.mounting = false;
+      if (current()) {
+        tile.live = false;
+        setTileState(tile.root, 'offline');
+      }
       return;
     }
-    if (gen !== generation) return;
+    if (!current()) return;
 
     tile.player = new api.Player(tile.mount, {
       host: 'https://www.youtube-nocookie.com',
@@ -251,21 +307,20 @@ export function createWall(
       },
       events: {
         onReady: ({ target }) => {
-          if (gen !== generation) return;
+          if (!current()) return;
           target.mute();
           hideCaptions(target);
           target.getIframe().title = tile.clip.title;
           target.getIframe().tabIndex = -1;
           seekToRandomPoint(target);
           tile.ready = true;
-          tile.mounting = false;
           setTileState(tile.root, 'ready');
           // Sound may have been turned on while the player was still loading.
           applySound(tile);
           syncPlayback(tile);
         },
         onStateChange: ({ target, data }) => {
-          if (gen !== generation) return;
+          if (!current()) return;
           if (data === api.PlayerState.ENDED) {
             // Loop by jumping to a fresh random moment instead of restarting at 0:00.
             seekToRandomPoint(target);
@@ -277,7 +332,7 @@ export function createWall(
           }
         },
         onError: ({ data }) => {
-          if (gen !== generation) return;
+          if (!current()) return;
           if (isFatalPlayerError(data)) removeTile(tile);
         },
       },
@@ -286,41 +341,52 @@ export function createWall(
 
   async function mountPost(tile: PostTile): Promise<void> {
     const gen = generation;
-    tile.mounting = true;
+    const epoch = tile.epoch;
+    const current = (): boolean => gen === generation && epoch === tile.epoch;
+    tile.live = true;
     setTileState(tile.root, 'loading');
 
     try {
       const x = await loadXWidgets(options.apiTimeoutMs);
-      if (gen !== generation) return;
-      const embed = await x.widgets.createTweet(tile.post.id, tile.mount, {
+      if (!current()) return;
+      // Render into a fresh container so a cancelled mount can't leave an embed behind.
+      const container = document.createElement('div');
+      tile.mount.replaceChildren(container);
+      const embed = await x.widgets.createTweet(tile.post.id, container, {
         theme: 'dark',
         dnt: true,
         conversation: 'none',
         align: 'center',
       });
-      if (gen !== generation) return;
+      if (!current()) {
+        container.remove();
+        return;
+      }
       if (!embed) {
         // Deleted, private or otherwise unavailable.
         removeTile(tile);
         return;
       }
       tile.ready = true;
+      tile.root.style.minHeight = '';
       setTileState(tile.root, 'ready');
     } catch (error) {
       console.warn(error);
-      if (gen === generation) setTileState(tile.root, 'offline');
-    } finally {
-      tile.mounting = false;
+      if (current()) {
+        tile.live = false;
+        setTileState(tile.root, 'offline');
+      }
     }
   }
 
   function destroyTile(tile: Tile): void {
     observer.unobserve(tile.root);
     seenObserver.unobserve(tile.root);
+    clearTimers(tile);
+    tile.epoch += 1;
+    tile.live = false;
     if (tile.kind !== 'clip') return;
     if (tile === soundTile) soundTile = null;
-    if (tile.unmountTimer !== null) window.clearTimeout(tile.unmountTimer);
-    tile.unmountTimer = null;
     try {
       tile.player?.destroy();
     } catch {
@@ -354,7 +420,15 @@ export function createWall(
   }
 
   function buildTile(item: WallItem): Tile {
-    const fresh = { mounting: false, ready: false, visible: false };
+    const fresh = {
+      live: false,
+      ready: false,
+      visible: false,
+      epoch: 0,
+      hiddenSince: 0,
+      mountTimer: null,
+      unmountTimer: null,
+    };
     const tile: Tile =
       item.kind === 'clip'
         ? {
@@ -364,7 +438,6 @@ export function createWall(
             kind: 'clip',
             clip: item.clip,
             player: null,
-            unmountTimer: null,
           }
         : {
             ...createPostTile(item.post),
