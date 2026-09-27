@@ -37,11 +37,8 @@
   text-transform: uppercase;
   opacity: 0.6;
 }
-.footer__credit a {
-  color: inherit;
+.footer__author {
+  text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-color: var(--color-orange);
-}
-.footer__credit a:hover {
-  color: var(--color-orange);
 }
