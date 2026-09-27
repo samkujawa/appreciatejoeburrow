@@ -1,6 +1,9 @@
 import { CLIPS } from '../data/clips';
 import type { Poll } from '../data/play-of-the-week';
 import { POSTS } from '../data/posts';
+import { SCHEDULE } from '../data/schedule';
+import { matchup } from '../lib/gameday';
+import { nextGameAfter, pollClosesAt } from '../lib/poll-close';
 import { watchUrl } from '../lib/playback';
 import { postUrl } from '../lib/x-widgets';
 
@@ -50,7 +53,8 @@ const format = new Intl.NumberFormat('en-US');
 export function initPlayOfTheWeek(section: HTMLElement, poll: Poll | null): void {
   if (!poll) return;
   const current = poll;
-  const closesAt = Date.parse(current.closes);
+  const closesAt = pollClosesAt(current, SCHEDULE);
+  const nextGame = nextGameAfter(current, SCHEDULE);
   let state: PollState | null = null;
   let myVote = storedVote(current.id);
   let sending = false;
@@ -80,13 +84,16 @@ export function initPlayOfTheWeek(section: HTMLElement, poll: Poll | null): void
     const showResults = myVote !== null || closed();
     const total = state?.total ?? 0;
     const max = Math.max(0, ...Object.values(state?.tally ?? {}));
-    const closeDay = new Date(closesAt).toLocaleDateString('en-US', {
-      weekday: 'long',
+    const when = new Date(closesAt).toLocaleString('en-US', {
+      weekday: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
       timeZone: 'America/New_York',
     });
-    sub.textContent = closed()
-      ? `${current.label} · Final results`
-      : `${current.label} · Voting closes ${closeDay}`;
+    const until = nextGame
+      ? `Voting closes at kickoff: ${matchup(nextGame)}, ${when} ET`
+      : `Voting closes ${when} ET`;
+    sub.textContent = closed() ? `${current.label} · Final results` : `${current.label} · ${until}`;
 
     list.replaceChildren(
       ...current.candidates.map((id) => {
