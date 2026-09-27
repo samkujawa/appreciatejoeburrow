@@ -7,6 +7,7 @@ import { createWall } from './components/wall';
 import { CONFIG } from './config';
 import { CLIPS } from './data/clips';
 import { POSTS } from './data/posts';
+import { createSeenStore } from './lib/seen';
 
 function requireElement<T extends HTMLElement>(selector: string, type: new () => T): T {
   const el = document.querySelector(selector);
@@ -42,6 +43,9 @@ function init(): void {
     apiTimeoutMs: CONFIG.apiTimeoutMs,
     endBufferSeconds: CONFIG.endBufferSeconds,
     startPaused: paused,
+    unmountAfterMs: CONFIG.unmountAfterMs,
+    batchSize: CONFIG.batchSize,
+    seen: createSeenStore(CONFIG.seenMemory),
     onTileCountChange: (count) => {
       status.hidden = count > 0;
       status.textContent = count > 0 ? '' : 'No highlights could be loaded. Try again later.';

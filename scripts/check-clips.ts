@@ -8,8 +8,9 @@
  * removed or private. It does NOT catch videos that block playback on other sites (player error
  * 150, common for NFL uploads); for that, run `npm run dev` and open /check.html.
  *
- * X: uses the same syndication endpoint widgets.js renders embeds from. It's undocumented, so if
- * every post suddenly fails, check whether the endpoint changed before deleting posts.
+ * X: uses the same syndication endpoint widgets.js renders embeds from, and requires each post to
+ * have a video or photo attached. The endpoint is undocumented, so if every post suddenly fails,
+ * check whether it changed before deleting posts.
  */
 import { CLIPS } from '../src/data/clips';
 import { POSTS } from '../src/data/posts';
@@ -75,12 +76,15 @@ async function checkPost(id: string, title: string): Promise<Result> {
     if (body.__typename !== 'Tweet') {
       return { ...result, ok: false, detail: `unavailable (${body.__typename ?? 'unknown'})` };
     }
-    const hasVideo = (body.mediaDetails ?? []).some((m) => m.type === 'video');
-    const text = (body.text ?? '').replace(/\s+/g, ' ').slice(0, 60);
+    // Video or photos both work on the wall; a text-only post would look out of place.
+    const media = [...new Set((body.mediaDetails ?? []).map((m) => m.type ?? '?'))].join('+');
+    const text = (body.text ?? '').replace(/\s+/g, ' ').slice(0, 50);
     return {
       ...result,
-      ok: hasVideo,
-      detail: hasVideo ? `@${body.user?.screen_name ?? '?'} — ${text}` : 'no video attached',
+      ok: media !== '',
+      detail: media
+        ? `${media} · @${body.user?.screen_name ?? '?'} — ${text}`
+        : 'no media attached',
     };
   } catch (error) {
     return { ...result, ok: false, detail: describeError(error) };
