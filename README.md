@@ -120,14 +120,15 @@ gets a preview URL (`<branch>-appreciatejoeburrow.samuel47-sk.workers.dev`), so 
 URLs with `dist/404.html` (built from `404.html`) and a 404 status. Build settings live in the
 Cloudflare dashboard (Workers & Pages → appreciatejoeburrow → Settings → Build):
 
-| Setting         | Value                          |
-| --------------- | ------------------------------ |
-| Build command   | `npm run build`                |
-| Deploy command  | `npx wrangler deploy`          |
-| Preview command | `npx wrangler versions upload` |
+| Setting         | Value                                                                                                     |
+| --------------- | --------------------------------------------------------------------------------------------------------- |
+| Build command   | `npm run build`                                                                                           |
+| Deploy command  | `npx wrangler deploy --assets=./dist --name=appreciatejoeburrow --compatibility-date=2026-09-01`          |
+| Preview command | `npx wrangler versions upload --assets=./dist --name=appreciatejoeburrow --compatibility-date=2026-09-01` |
 
-Everything else (name, compatibility date, assets directory, 404 handling) comes from
-`wrangler.jsonc`, so keep the commands flag-free.
+The flags duplicate what's in `wrangler.jsonc` and Wrangler merges the two (the 404 handling
+applies either way), so the commands could be shortened to plain `npx wrangler deploy` /
+`npx wrangler versions upload`. If you change a value, change it in both places.
 
 Workers serves `dist/_headers` (copied from `public/_headers`), so the security headers below apply
 in production.
