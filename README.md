@@ -74,12 +74,27 @@ to it.
   1,000, 2,000, 5,000, … (or Joe's number: 99, 999, 9,999, …), that visitor gets confetti and a
   "You were appreciation #1,000" banner (`lib/milestones.ts`). The server counts batches one at
   a time, so each milestone goes to exactly one visitor.
+- **Stats page.** `/stats` (`stats.html`, `src/stats.ts`) shows career and current-season
+  numbers, next milestones (labeled bars with a hover/tap tooltip and an "about N games at his
+  pace" projection), passing yards by season (plain SVG) and a season-by-season table. Data
+  comes from ESPN via `GET /api/stats`, cached 10 minutes. The last good copy is kept in the
+  Durable Object, so if ESPN is down or changes shape the page shows saved stats marked as such.
 - **Game day.** `src/data/schedule.ts` holds the season's kickoffs with their Eastern offsets
   (EDT `-04:00` through October, EST `-05:00` from the November clock change; a test checks
   every date). From midnight Eastern on game day a banner shows the matchup, kickoff in ET, the
   network and a countdown; at kickoff it switches to **Game on** with a pulsing dot for 3.5
-  hours (`lib/gameday.ts`). TBD games (`kickoff: null`) are skipped until the weekly job fills
+  hours (`lib/gameday.ts`). During the game it polls `GET /api/live` every 30 seconds for the
+  live score and clock and Burrow's passing line, then shows the **Final** for the rest of game day (at least
+  4.5 hours past kickoff, for late games). If ESPN is unreachable it falls back to a plain
+  "Game on". TBD games (`kickoff: null`) are skipped until the weekly job fills
   them in.
+- **ESPN data.** `worker/espn.ts` parses ESPN's public but undocumented JSON (scoreboard, game
+  summary, athlete stats) defensively, and `tests/espn.test.ts` checks the parsers against saved
+  real responses in `tests/fixtures/`. The Worker calls `site.web.api.espn.com` with an
+  identifying User-Agent; ESPN's CDN refuses requests without one (and `site.api.espn.com`
+  refuses custom ones).
+- **About.** A short section above the footer, linked from the header and footer. The wall
+  loads every tile before jumping there, so the link lands even though the wall keeps growing.
 - **Last game.** `src/data/last-game.ts` names the most recent game (label, result, date) and
   lists the IDs of its clips and posts, which must also be in the clip lists. Those tiles are
   pinned to the top with a **Last game** label under a banner. The section hides itself 10 days
@@ -203,7 +218,8 @@ src/
   main.ts                  Wires up the wall, buttons and page visibility
   config.ts                Photo, preload distance, timeouts
   components/appreciate.ts The Appreciate button, count and milestone celebration
-  components/gameday.ts    Game-day banner and countdown
+  components/gameday.ts    Game-day banner: countdown, live score, final
+  stats.ts                 Stats page
   data/clips.ts            YouTube videos
   data/posts.ts            X posts
   data/schedule.ts         2026 schedule for the game-day banner
@@ -218,6 +234,7 @@ src/
 public/                    Favicon, OG image, robots.txt, _headers
 worker/index.ts            Cloudflare Worker: /api/appreciate and the counter Durable Object
 worker/limits.ts           Request validation and per-visitor rate limiting
+worker/espn.ts             ESPN scoreboard, box score and career stats parsers
 wrangler.jsonc             Worker, static assets, 404 page and Durable Object config
 check.html                 Dev-only real-player embed check (not deployed)
 scripts/check-clips.ts     Existence check for every clip and post

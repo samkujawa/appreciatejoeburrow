@@ -22,10 +22,19 @@ describe('currentGameDay', () => {
     expect(currentGameDay([steelers], at('2026-09-27T12:59:00-04:00'))?.phase).toBe('pregame');
   });
 
-  it('is live from kickoff for three and a half hours', () => {
+  it('is live from kickoff for three and a half hours, then "after" until midnight Eastern', () => {
     expect(currentGameDay([steelers], at('2026-09-27T13:00:00-04:00'))?.phase).toBe('live');
     expect(currentGameDay([steelers], at('2026-09-27T16:29:00-04:00'))?.phase).toBe('live');
-    expect(currentGameDay([steelers], at('2026-09-27T16:31:00-04:00'))).toBeNull();
+    expect(currentGameDay([steelers], at('2026-09-27T16:31:00-04:00'))?.phase).toBe('after');
+    expect(currentGameDay([steelers], at('2026-09-27T23:59:00-04:00'))?.phase).toBe('after');
+    expect(currentGameDay([steelers], at('2026-09-28T00:00:00-04:00'))).toBeNull();
+  });
+
+  it('keeps a late game’s final score up past midnight', () => {
+    const late: Game = { ...steelers, kickoff: '2026-11-23T20:15:00-05:00' };
+    expect(currentGameDay([late], at('2026-11-23T23:40:00-05:00'))?.phase).toBe('live');
+    expect(currentGameDay([late], at('2026-11-24T00:30:00-05:00'))?.phase).toBe('after');
+    expect(currentGameDay([late], at('2026-11-24T00:50:00-05:00'))).toBeNull();
   });
 
   it('ignores games without a kickoff time', () => {

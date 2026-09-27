@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Joe Burrow Stats · AppreciateJoeBurrow.com</title>
+    <meta
+      name="description"
+      content="Joe Burrow's career and season stats, milestones and passing yards by season."
+    />
+    <meta name="theme-color" content="#0e0b09" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href="%VITE_SITE_URL%/stats" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="AppreciateJoeBurrow.com" />
+    <meta property="og:title" content="Joe Burrow, by the numbers" />
+    <meta property="og:url" content="%VITE_SITE_URL%/stats" />
+    <meta property="og:image" content="%VITE_SITE_URL%/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div class="stripes" aria-hidden="true"></div>
+
+    <header class="stats-head">
+      <a class="stats-head__back" href="/">← Back to the highlights</a>
+      <h1 class="stats-head__title">
+        Joe Burrow<span class="masthead__accent">.</span>
+        <span class="stats-head__sub">By the numbers</span>
+      </h1>
+    </header>
+
+    <main id="stats" class="stats" aria-busy="true">
+      <p class="stats__status" data-role="status">Loading stats…</p>
+
+      <section class="stats__section" data-role="career" hidden>
+        <h2 class="stats__h2">Career</h2>
+        <div class="stats__hero" data-role="hero"></div>
+      </section>
+
+      <section class="stats__section" data-role="season" hidden>
+        <h2 class="stats__h2" data-role="season-title">This season</h2>
+        <div class="stats__hero stats__hero--small" data-role="season-hero"></div>
+      </section>
+
+      <section class="stats__section" data-role="milestones" hidden>
+        <h2 class="stats__h2">Next milestones</h2>
+        <div class="stats__milestones" data-role="milestone-list"></div>
+      </section>
+
+      <section class="stats__section" data-role="chart" hidden>
+        <h2 class="stats__h2">Passing yards by season</h2>
+        <figure class="stats__chart" data-role="chart-figure"></figure>
+      </section>
+
+      <section class="stats__section" data-role="table" hidden>
+        <h2 class="stats__h2">Season by season</h2>
+        <div class="stats__table-wrap">
+          <table class="stats__table" data-role="season-table"></table>
+        </div>
+      </section>
+
+      <p class="stats__source" data-role="source" hidden></p>
+    </main>
+
+    <footer class="footer">
+      <p class="footer__names">
+        <span class="footer__accent">Joe Shiesty</span> · Joey B · Joe Cool · #9 · Who Dey
+      </p>
+      <p class="footer__fine">
+        A fan site. Not affiliated with Joe Burrow, the Cincinnati Bengals or the NFL. Stats via
+        ESPN.
+      </p>
+    </footer>
+
+    <div class="stripes" aria-hidden="true"></div>
+    <script type="module" src="/src/stats.ts"></script>
+  </body>
+</html>
