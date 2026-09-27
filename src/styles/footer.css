@@ -78,3 +78,23 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+
+/* Instagram link in the footer. */
+.footer__social {
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.footer__social a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-bone);
+  text-decoration: none;
+}
+.footer__social a:hover {
+  color: var(--color-orange);
+}
+.footer__ig-icon {
+  width: 20px;
+  height: 20px;
+}
