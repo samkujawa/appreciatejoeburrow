@@ -3,8 +3,11 @@ export interface Poll {
   readonly id: string;
   /** Which game the plays are from, e.g. 'Week 3 at Pittsburgh'. */
   readonly label: string;
-  /** When voting closes (ISO time). After this the section shows final results. */
-  readonly closes: string;
+  /**
+   * That game's `week` in src/data/schedule.ts. Voting closes automatically at kickoff of the
+   * Bengals' next game (see lib/poll-close.ts), so it's always about the most recent game.
+   */
+  readonly week: number;
   /** 2–4 clip/post IDs (from src/data/clips.ts or posts.ts) to vote between. */
   readonly candidates: readonly string[];
 }
@@ -16,6 +19,6 @@ export interface Poll {
 export const PLAY_OF_THE_WEEK: Poll | null = {
   id: '2026-week-2',
   label: 'Week 2 at Houston',
-  closes: '2026-09-29T14:00:00Z',
+  week: 2,
   candidates: ['2101735938896633876', '2101752655068667986'],
 };

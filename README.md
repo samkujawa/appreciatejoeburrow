@@ -124,7 +124,9 @@ to it.
 - **About.** A short section above the footer, linked from the nav and footer. The wall
   loads every tile before jumping there, so the link lands even though the wall keeps growing.
 - **Play of the Week.** `src/data/play-of-the-week.ts` names this week's vote (2–4 plays from
-  the latest game, a closing time). The section above the wall lets each visitor vote once, then
+  the latest game and that game's schedule week). Voting closes automatically at kickoff of the
+  Bengals' next game (`lib/poll-close.ts`; open through bye weeks, estimated for TBD games, a week
+  after the season's last game). The section above the wall lets each visitor vote once, then
   shows live results; after it closes it shows the final results and winner
   (`components/play-of-the-week.ts`). Votes are stored in the Durable Object via
   `GET/POST /api/poll` (`worker/polls.ts`): only for the current, open poll and its candidates,

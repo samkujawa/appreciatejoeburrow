@@ -20,6 +20,8 @@ import {
   type Career,
 } from './espn';
 import { PLAY_OF_THE_WEEK } from '../src/data/play-of-the-week';
+import { SCHEDULE } from '../src/data/schedule';
+import { pollClosesAt } from '../src/lib/poll-close';
 import { isAllowedOrigin, parseTaps, TapLimiter } from './limits';
 import { checkVote, fullTally, VoteLimiter } from './polls';
 import { achievements, type Achievement } from './records';
@@ -244,7 +246,7 @@ function pollBody(tally: Record<string, number>, extra: Record<string, unknown> 
     id: poll.id,
     tally: full,
     total: Object.values(full).reduce((a, b) => a + b, 0),
-    closed: Date.now() >= Date.parse(poll.closes),
+    closed: Date.now() >= pollClosesAt(poll, SCHEDULE),
     ...extra,
   };
 }
@@ -264,7 +266,8 @@ async function castVote(request: Request, env: Env): Promise<Response> {
   } catch {
     return json({ error: 'invalid body' }, { status: 400 });
   }
-  const check = checkVote(body, PLAY_OF_THE_WEEK, Date.now());
+  const closesAt = PLAY_OF_THE_WEEK ? pollClosesAt(PLAY_OF_THE_WEEK, SCHEDULE) : 0;
+  const check = checkVote(body, PLAY_OF_THE_WEEK, Date.now(), closesAt);
   if (!check.ok || !PLAY_OF_THE_WEEK) {
     return json(
       { error: check.ok ? 'no poll' : check.error },
