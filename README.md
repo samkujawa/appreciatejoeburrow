@@ -3,7 +3,7 @@
 A wall of Joe Burrow highlights — YouTube videos playing all at once, mixed with NFL clips from X —
 in a different order every visit.
 
-Static site built with Vite and TypeScript. No framework, no backend, no tracking.
+Static site built with Vite and TypeScript. No framework, no backend, no cookies.
 
 ## Getting started
 
@@ -82,18 +82,50 @@ you have the rights to whatever photo you use.
 
 ## Deploying
 
-Set `VITE_SITE_URL` in `.env` to your real domain (it's used for the canonical and Open Graph
-tags), then deploy `dist/` anywhere that serves static files.
+The live site runs on **Cloudflare Workers** (static assets), built from `main` by Workers
+Builds, which is connected to this GitHub repo. Merging to `main` deploys to
+[appreciatejoeburrow.com](https://appreciatejoeburrow.com) in a minute or two. Every other branch
+gets a preview URL (`<branch>-appreciatejoeburrow.samuel47-sk.workers.dev`), so check PRs there.
 
-- **Netlify:** connect the repo. `netlify.toml` sets the build, and `public/_headers` sets the
-  security headers.
-- **Cloudflare Pages:** build command `npm run build`, output `dist`. Uses `public/_headers`.
-- **Vercel:** connect the repo. `vercel.json` sets the build and headers.
+There's no Wrangler config file; the settings live in the Cloudflare dashboard
+(Workers & Pages → appreciatejoeburrow → Settings → Build):
+
+| Setting         | Value                                                                                                     |
+| --------------- | --------------------------------------------------------------------------------------------------------- |
+| Build command   | `npm run build`                                                                                           |
+| Deploy command  | `npx wrangler deploy --assets=./dist --name=appreciatejoeburrow --compatibility-date=2026-09-01`          |
+| Preview command | `npx wrangler versions upload --assets=./dist --name=appreciatejoeburrow --compatibility-date=2026-09-01` |
+
+Workers serves `dist/_headers` (copied from `public/_headers`), so the security headers below apply
+in production.
+
+### Domain
+
+- Registered at **GoDaddy**; its nameservers point to Cloudflare, so all DNS is managed in
+  Cloudflare, not GoDaddy.
+- `appreciatejoeburrow.com` is a custom domain on the Worker.
+- `www` is a proxied CNAME to the root plus a Cloudflare Redirect Rule
+  (`https://www.appreciatejoeburrow.com/*` → `https://appreciatejoeburrow.com/${1}`, 301).
+- **Always Use HTTPS** is on, so `http://` requests upgrade before the redirect.
+- `VITE_SITE_URL` in `.env` is used for the canonical and Open Graph tags; change it if the
+  domain ever changes.
+
+### Analytics
+
+Cloudflare Web Analytics is turned on for the domain. Cloudflare injects its beacon script
+automatically, and it's cookie-free. Stats are in the Cloudflare dashboard under
+**Analytics & Logs → Web Analytics**.
+
+### Other hosts
+
+`netlify.toml` and `vercel.json` are kept so the site can move to Netlify or Vercel without
+changes. Cloudflare Pages would also work with the same build settings and `public/_headers`.
 
 ### Security headers
 
 The Content Security Policy only allows scripts from this site, `www.youtube.com` (the player
-API) and X (`platform.twitter.com`, `cdn.syndication.twimg.com`), frames from
+API), X (`platform.twitter.com`, `cdn.syndication.twimg.com`) and Cloudflare Web Analytics
+(`static.cloudflareinsights.com`, which reports to `cloudflareinsights.com`), frames from
 `youtube-nocookie.com` / `youtube.com` / `platform.twitter.com`, and images from `i.ytimg.com`
 (thumbnails). The policy lives in `public/_headers`; `vercel.json` repeats it, and a unit test
 fails if the two drift apart. `npm run preview` serves these same headers, so check CSP changes
