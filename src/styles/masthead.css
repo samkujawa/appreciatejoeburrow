@@ -278,3 +278,10 @@
   opacity: 1;
   transform: none;
 }
+
+.milestone__actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}

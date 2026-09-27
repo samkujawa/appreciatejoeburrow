@@ -213,3 +213,81 @@ html {
 :root.joe-cool .cool-on {
   display: inline;
 }
+
+/* Share buttons and the share-card preview dialog. */
+.share-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 5px;
+  border: 1px solid var(--color-orange);
+  background: none;
+  color: var(--color-orange);
+  font: 700 0.8rem/1 var(--font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.share-button:hover {
+  background: var(--color-orange);
+  color: var(--color-ink);
+}
+.share-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.share-dialog {
+  width: min(92vw, 440px);
+  max-height: 92vh;
+  padding: 0;
+  border: 2px solid var(--color-orange);
+  background: var(--color-ink);
+  color: var(--color-bone);
+}
+.share-dialog::backdrop {
+  background: rgb(0 0 0 / 0.75);
+}
+.share-dialog__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+.share-dialog__status,
+.share-dialog__hint {
+  margin: 0;
+  color: var(--color-muted);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.share-dialog__preview {
+  width: 100%;
+  height: auto;
+  max-height: 60vh;
+  object-fit: contain;
+}
+.share-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.share-dialog__actions > * {
+  padding: 12px 20px 11px;
+  border: 0;
+  background: var(--color-bone);
+  color: var(--color-ink);
+  font: 700 0.95rem/1 var(--font-label);
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.share-dialog__actions .share-dialog__share {
+  background: var(--color-orange);
+}
+.share-dialog__actions .share-dialog__close {
+  background: none;
+  color: var(--color-muted);
+}
