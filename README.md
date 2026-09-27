@@ -49,6 +49,14 @@ npm run dev      # http://localhost:5173
   leave the screen or the tab is hidden, and are destroyed back to their thumbnail after 20
   seconds off screen, so scrolling through ~100 videos never leaves ~100 players alive. All of
   these numbers are in `src/config.ts`.
+- **Sound.** Everything starts muted. Each video has a speaker button (always visible on touch
+  screens, 44px), and clicking or tapping anywhere on a video toggles its sound. Only one video is
+  audible at a time; it gets an orange frame, plays even when **Pause all** is on, and goes
+  quiet when it scrolls off screen. **Esc** mutes it. On desktop, **Sound on hover** makes
+  hovering a video play its sound. Browsers only allow sound after a click, so hover mode is an
+  opt-in switch (that click unlocks audio) and isn't remembered between visits; the switch is
+  hidden on touch screens. A transparent `.tile__hit` layer over each player keeps pointer
+  events in this page (YouTube's iframe would swallow them) and hides YouTube's hover chrome.
 - **Broken tiles remove themselves.** If YouTube reports a video as removed, private or not
   embeddable (error codes 2, 5, 100, 101, 150), or X can't render a post, that tile is removed.
 - **X posts load lazily.** X's `widgets.js` is only fetched once a post scrolls near the screen,
@@ -57,7 +65,8 @@ npm run dev      # http://localhost:5173
   YouTube's player script can't load (blocked by an extension, network issue), tiles keep the
   thumbnail and show a "watch on YouTube" link.
 - **Accessibility.** There's a **Pause all** control (auto-playing video needs one), visitors
-  with reduced motion turned on start paused, tile links are keyboard reachable, and titles stay
+  with reduced motion turned on (or phones in data-saver mode) start paused, speaker buttons are
+  real buttons with `aria-pressed`, tile links are keyboard reachable, and titles stay
   visible on touch screens.
 
 ## Editing the clips and posts

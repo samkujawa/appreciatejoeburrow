@@ -100,6 +100,12 @@ img {
 .btn--light {
   background: var(--color-bone);
 }
+/* Controls that only make sense with a mouse, like sound on hover. */
+@media not ((hover: hover) and (pointer: fine)) {
+  .btn--hover-only {
+    display: none;
+  }
+}
 .btn--light:hover {
   background: var(--color-muted);
   color: var(--color-ink);

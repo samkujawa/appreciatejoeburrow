@@ -74,6 +74,69 @@
   opacity: 1;
 }
 
+/* Sits over the player so pointer events stay in this page; click or tap toggles sound. */
+.tile__hit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: pointer;
+}
+
+/* Speaker button: top-right of every video. Shown on hover/focus with a mouse, always on touch. */
+.tile__sound {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(14 11 9 / 0.72);
+  color: var(--color-bone);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background-color 0.15s;
+}
+.tile__sound svg {
+  width: 20px;
+  height: 20px;
+}
+.tile__sound .tile__sound-on,
+.tile__sound[aria-pressed='true'] .tile__sound-off {
+  display: none;
+}
+.tile__sound[aria-pressed='true'] .tile__sound-on {
+  display: block;
+}
+.tile:hover .tile__sound,
+.tile__sound:focus-visible,
+.tile__sound[aria-pressed='true'] {
+  opacity: 1;
+}
+.tile__sound:hover,
+.tile__sound[aria-pressed='true'] {
+  background: var(--color-orange);
+  color: var(--color-ink);
+}
+.tile__sound:focus-visible {
+  outline-offset: 2px;
+}
+/* The video that has sound gets an orange frame so it's obvious which one is playing out loud. */
+.tile--audible::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 3px solid var(--color-orange);
+  pointer-events: none;
+}
+
 .tile[data-state='loading']::after {
   content: '';
   position: absolute;
@@ -97,7 +160,7 @@
   position: absolute;
   left: 0;
   bottom: 0;
-  z-index: 1;
+  z-index: 2;
   max-width: 100%;
   padding: 6px 10px 5px;
   background: var(--color-orange);
@@ -126,11 +189,16 @@
   outline-offset: -3px;
 }
 
-/* Touch screens have no hover, so keep titles visible there. */
+/* Touch screens have no hover, so keep titles and the speaker visible, with a finger-sized target. */
 @media (hover: none) {
   .tile__link {
     opacity: 1;
     transform: none;
+  }
+  .tile__sound {
+    opacity: 1;
+    width: 44px;
+    height: 44px;
   }
 }
 
