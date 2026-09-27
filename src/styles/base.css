@@ -204,6 +204,64 @@ html {
 .sitenav__cool[aria-pressed='true'] {
   background: rgb(127 211 255 / 0.12);
 }
+/* Tooltip under the Joe Cool toggle. */
+.sitenav__cool {
+  position: relative;
+}
+.sitenav__tip {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -6px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: max-content;
+  max-width: 220px;
+  padding: 8px 12px;
+  background: var(--color-bone);
+  color: var(--color-ink);
+  font: 500 0.9rem/1.25 var(--font-label);
+  letter-spacing: 0.03em;
+  text-align: left;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.12s,
+    transform 0.12s,
+    visibility 0.12s;
+  pointer-events: none;
+}
+.sitenav__tip strong {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+/* Little arrow pointing at the button. */
+.sitenav__tip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 20px;
+  border: 6px solid transparent;
+  border-top: 0;
+  border-bottom-color: var(--color-bone);
+}
+.sitenav__cool:focus-visible .sitenav__tip {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+/* Only on devices that really hover, so a tap on a phone doesn't leave it stuck open. */
+@media (hover: hover) {
+  .sitenav__cool:hover .sitenav__tip {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+}
 
 /* Show one of two texts depending on Joe Cool mode. */
 .cool-on,
