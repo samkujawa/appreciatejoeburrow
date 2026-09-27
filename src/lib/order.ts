@@ -10,6 +10,8 @@ export interface OrderOptions {
   seen: ReadonlySet<string>;
   /** How many videos lead the wall before any X post appears (usually one full row). */
   leadClips: number;
+  /** IDs pinned to the very top in this order (the last game), ahead of everything else. */
+  pinned?: readonly string[];
   rng?: Rng;
 }
 
@@ -25,16 +27,32 @@ function freshFirst<T extends { id: string }>(
 }
 
 /**
- * Builds the wall's reading order: a row of autoplaying videos first, then the remaining
- * videos with X posts spread evenly between them. Unseen items come before seen ones.
+ * Builds the wall's reading order: any pinned last-game items, then a row of autoplaying videos,
+ * then the remaining videos with X posts spread evenly between them. Unseen items come before
+ * seen ones.
  */
 export function orderWall(
   clips: readonly Clip[],
   posts: readonly Post[],
-  { seen, leadClips, rng = Math.random }: OrderOptions,
+  { seen, leadClips, pinned = [], rng = Math.random }: OrderOptions,
 ): WallItem[] {
-  const clipItems = freshFirst(clips, seen, rng).map((clip): WallItem => ({ kind: 'clip', clip }));
-  const postItems = freshFirst(posts, seen, rng).map((post): WallItem => ({ kind: 'post', post }));
+  const pinnedSet = new Set(pinned);
+  const byId = new Map<string, WallItem>([
+    ...clips.map((clip): [string, WallItem] => [clip.id, { kind: 'clip', clip }]),
+    ...posts.map((post): [string, WallItem] => [post.id, { kind: 'post', post }]),
+  ]);
+  const top = pinned.flatMap((id) => byId.get(id) ?? []);
+
+  const clipItems = freshFirst(
+    clips.filter((c) => !pinnedSet.has(c.id)),
+    seen,
+    rng,
+  ).map((clip): WallItem => ({ kind: 'clip', clip }));
+  const postItems = freshFirst(
+    posts.filter((p) => !pinnedSet.has(p.id)),
+    seen,
+    rng,
+  ).map((post): WallItem => ({ kind: 'post', post }));
   const lead = clipItems.slice(0, leadClips);
-  return [...lead, ...interleave(clipItems.slice(leadClips), postItems)];
+  return [...top, ...lead, ...interleave(clipItems.slice(leadClips), postItems)];
 }

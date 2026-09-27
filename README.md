@@ -55,6 +55,11 @@ npm run dev      # http://localhost:5173
     instead of ~87.
   - Players pause when off screen or when the tab is hidden. All of these numbers are in
     `src/config.ts`.
+- **Last game.** `src/data/last-game.ts` names the most recent game (label, result, date) and
+  lists the IDs of its clips and posts, which must also be in the clip lists. Those tiles are
+  pinned to the top with a **Last game** label under a banner. The section hides itself 10 days
+  after the game date (`lastGameDays` in `src/config.ts`) so it never advertises a stale game.
+  The weekly clip job updates it after each game.
 - **Sound.** Everything starts muted. Each video has a speaker button (always visible on touch
   screens, 44px), and clicking or tapping anywhere on a video toggles its sound. Only one video is
   audible at a time; it gets an orange frame, plays even when **Pause all** is on, and goes
@@ -111,14 +116,18 @@ Builds, which is connected to this GitHub repo. Merging to `main` deploys to
 [appreciatejoeburrow.com](https://appreciatejoeburrow.com) in a minute or two. Every other branch
 gets a preview URL (`<branch>-appreciatejoeburrow.samuel47-sk.workers.dev`), so check PRs there.
 
-There's no Wrangler config file; the settings live in the Cloudflare dashboard
-(Workers & Pages → appreciatejoeburrow → Settings → Build):
+`wrangler.jsonc` configures the Worker: it serves `dist/` as static assets and answers unknown
+URLs with `dist/404.html` (built from `404.html`) and a 404 status. Build settings live in the
+Cloudflare dashboard (Workers & Pages → appreciatejoeburrow → Settings → Build):
 
-| Setting         | Value                                                                                                     |
-| --------------- | --------------------------------------------------------------------------------------------------------- |
-| Build command   | `npm run build`                                                                                           |
-| Deploy command  | `npx wrangler deploy --assets=./dist --name=appreciatejoeburrow --compatibility-date=2026-09-01`          |
-| Preview command | `npx wrangler versions upload --assets=./dist --name=appreciatejoeburrow --compatibility-date=2026-09-01` |
+| Setting         | Value                          |
+| --------------- | ------------------------------ |
+| Build command   | `npm run build`                |
+| Deploy command  | `npx wrangler deploy`          |
+| Preview command | `npx wrangler versions upload` |
+
+Everything else (name, compatibility date, assets directory, 404 handling) comes from
+`wrangler.jsonc`, so keep the commands flag-free.
 
 Workers serves `dist/_headers` (copied from `public/_headers`), so the security headers below apply
 in production.

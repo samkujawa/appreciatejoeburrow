@@ -9,7 +9,13 @@ const productionHeaders = parseHeadersFile(readFileSync('public/_headers', 'utf8
 export default defineConfig({
   build: {
     target: 'es2022',
-    cssCodeSplit: false,
+    // Two pages: the wall and the 404 page. check.html is dev-only and deliberately left out.
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        notFound: '404.html',
+      },
+    },
   },
   preview: {
     headers: productionHeaders ?? {},

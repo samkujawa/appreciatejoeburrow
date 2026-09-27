@@ -23,6 +23,9 @@ export const CONFIG = {
    */
   maxEmbedsPerColumn: 6,
 
+  /** The last-game section shows for this many days after the game date, then hides itself. */
+  lastGameDays: 10,
+
   /** Tiles added per batch as the visitor scrolls. Keeps a long clip list light on first load. */
   batchSize: 24,
 
