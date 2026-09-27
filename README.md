@@ -113,8 +113,9 @@ you have the rights to whatever photo you use.
 
 The live site runs on **Cloudflare Workers** (static assets), built from `main` by Workers
 Builds, which is connected to this GitHub repo. Merging to `main` deploys to
-[appreciatejoeburrow.com](https://appreciatejoeburrow.com) in a minute or two. Every other branch
-gets a preview URL (`<branch>-appreciatejoeburrow.samuel47-sk.workers.dev`), so check PRs there.
+[appreciatejoeburrow.com](https://appreciatejoeburrow.com) in a minute or two. Every pull request gets
+its own preview deploy: open the **Workers Builds** check on the PR and use the **Preview URL**
+in its summary.
 
 `wrangler.jsonc` configures the Worker: it serves `dist/` as static assets and answers unknown
 URLs with `dist/404.html` (built from `404.html`) and a 404 status. Build settings live in the
