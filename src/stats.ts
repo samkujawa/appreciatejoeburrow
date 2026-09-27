@@ -6,12 +6,22 @@ import './styles/index.css';
 import './styles/stats.css';
 
 import type { Career, Season } from '../worker/espn';
-import { gamesToReach, nextMilestone } from './lib/stat-milestones';
+import { SCHEDULE } from './data/schedule';
+import { choosePace, describeArrival, describePace, projectArrival } from './lib/projection';
+import { nextMilestone } from './lib/stat-milestones';
+import {
+  LADDERS,
+  ladderStatus,
+  ownedRecords,
+  type Achievement,
+  type Ladder,
+} from '../worker/records';
 
 interface StatsResponse {
   career: Career;
   asOf: string;
   stale: boolean;
+  justReached?: (Achievement & { reachedAt: string })[];
 }
 
 function isStatsResponse(value: unknown): value is StatsResponse {
@@ -57,111 +67,211 @@ function renderHero(target: HTMLElement, s: Omit<Season, 'year'>): void {
   );
 }
 
-interface MilestoneSpec {
+interface BarSpec {
   label: string;
-  unit: string;
   value: number;
-  step: number;
-  /** Per-game pace used to project how many games until the next milestone. */
-  perGame: number;
+  /** Right end of the bar; the fill is value / max. */
+  max: number;
+  /** Big number shown on the right of the heading, e.g. "21,271 of 25,000". */
+  position: string;
+  /** Ticks along the bar, e.g. the franchise leaders he's passing. */
+  markers?: { value: number; label: string; passed: boolean }[];
+  /** Plain-English lines under the bar. */
+  lines: (string | { strong: string; rest: string })[];
+  /** Tooltip text (hover, or tap/focus on touch). */
+  tip: string;
 }
 
-/**
- * Next round-number milestones, each with a labeled bar (last milestone → next), how many to go,
- * a games-away projection, and a tooltip (hover, or tap/focus on touch) with the full context.
- */
+let tipCount = 0;
+
+/** One labeled bar row: heading, a bar from 0 with optional markers and a tooltip, then notes. */
+function barRow(spec: BarSpec): HTMLElement {
+  const row = el('div', 'milestone-row');
+  const tipId = `bar-tip-${String((tipCount += 1))}`;
+
+  const head = el('div', 'milestone-row__head');
+  const position = el('span', 'milestone-row__position');
+  position.textContent = spec.position;
+  head.append(el('span', 'milestone-row__label', spec.label), position);
+
+  const track = el('div', 'milestone-row__track');
+  track.tabIndex = 0;
+  track.setAttribute('role', 'progressbar');
+  track.setAttribute('aria-valuemin', '0');
+  track.setAttribute('aria-valuemax', String(spec.max));
+  track.setAttribute('aria-valuenow', String(Math.min(spec.value, spec.max)));
+  track.setAttribute('aria-label', `${spec.label}: ${spec.position}`);
+  track.setAttribute('aria-describedby', tipId);
+
+  const bar = el('div', 'milestone-row__bar');
+  const fill = el('span', 'milestone-row__fill');
+  fill.style.width = `${String(Math.max(2, Math.min(1, spec.value / spec.max) * 100))}%`;
+  bar.append(fill);
+  for (const marker of spec.markers ?? []) {
+    const tick = el(
+      'span',
+      marker.passed ? 'milestone-row__tick is-passed' : 'milestone-row__tick',
+    );
+    tick.style.left = `${String(Math.min(100, (marker.value / spec.max) * 100))}%`;
+    tick.title = marker.label;
+    bar.append(tick);
+  }
+
+  const ends = el('div', 'milestone-row__ends');
+  ends.append(el('span', undefined, '0'), el('span', undefined, int.format(spec.max)));
+
+  const tip = el('span', 'milestone-row__tip', spec.tip);
+  tip.id = tipId;
+  tip.setAttribute('role', 'tooltip');
+  track.append(bar, ends, tip);
+
+  row.append(head, track);
+  for (const line of spec.lines) {
+    const p = el('p', 'milestone-row__note');
+    if (typeof line === 'string') p.textContent = line;
+    else p.append(el('strong', undefined, line.strong), line.rest);
+    row.append(p);
+  }
+  return row;
+}
+
+/** "He's averaging … At that rate he'd get there in about 17 games: next season." */
+function paceLines(career: Career, ladder: Ladder, remaining: number): string[] {
+  const pace = choosePace(career, ladder.stat);
+  if (!pace) return [];
+  const arrival = projectArrival(remaining, pace, SCHEDULE, new Date());
+  return [describePace(pace, ladder.perGameUnit), ...(arrival ? [describeArrival(arrival)] : [])];
+}
+
+/** Next round-number milestones. Targets move up on their own as he passes each one. */
 function renderMilestones(target: HTMLElement, career: Career): void {
-  const current = career.seasons.at(-1);
-  // Project from this season's pace once he's played, otherwise from his career pace.
-  const pace = current && current.games > 0 ? current : null;
-  const paceLabel = pace ? `his ${String(pace.year)} pace` : 'his career pace';
-  const perGame = (season: number | undefined, total: number): number => {
-    if (pace && season !== undefined) return season / pace.games;
-    return career.totals.games > 0 ? total / career.totals.games : 0;
-  };
-
-  const specs: MilestoneSpec[] = [
-    {
-      label: 'Career passing yards',
-      unit: 'yards',
-      value: career.totals.yards,
-      step: 5_000,
-      perGame: perGame(pace?.yards, career.totals.yards),
-    },
-    {
-      label: 'Career passing TDs',
-      unit: 'touchdown passes',
-      value: career.totals.touchdowns,
-      step: 25,
-      perGame: perGame(pace?.touchdowns, career.totals.touchdowns),
-    },
-    {
-      label: 'Career completions',
-      unit: 'completions',
-      value: career.totals.completions,
-      step: 250,
-      perGame: perGame(pace?.completions, career.totals.completions),
-    },
-  ];
-
   target.replaceChildren(
-    ...specs.map((spec, i) => {
-      const next = nextMilestone(spec.value, spec.step);
-      const games = gamesToReach(next.remaining, spec.perGame);
-      // The bar runs from 0 to the target, matching the "21,271 of 25,000" label beside it.
-      const share = spec.value / next.target;
-      const percent = Math.round(share * 100);
-      const tipId = `milestone-tip-${String(i)}`;
-
-      const row = el('div', 'milestone-row');
-
-      const head = el('div', 'milestone-row__head');
-      const position = el('span', 'milestone-row__position');
-      position.append(
-        el('strong', undefined, int.format(spec.value)),
-        ` of ${int.format(next.target)}`,
-      );
-      head.append(el('span', 'milestone-row__label', spec.label), position);
-
-      // Focusable so the tooltip also opens by keyboard and by tapping on phones.
-      const track = el('div', 'milestone-row__track');
-      track.tabIndex = 0;
-      track.setAttribute('role', 'progressbar');
-      track.setAttribute('aria-valuemin', '0');
-      track.setAttribute('aria-valuemax', String(next.target));
-      track.setAttribute('aria-valuenow', String(spec.value));
-      track.setAttribute(
-        'aria-label',
-        `${spec.label}: ${int.format(spec.value)} of ${int.format(next.target)}`,
-      );
-      track.setAttribute('aria-describedby', tipId);
-      const bar = el('div', 'milestone-row__bar');
-      const fill = el('span', 'milestone-row__fill');
-      fill.style.width = `${String(Math.max(2, share * 100))}%`;
-      bar.append(fill);
-      const ends = el('div', 'milestone-row__ends');
-      ends.append(el('span', undefined, '0'), el('span', undefined, int.format(next.target)));
-      const tip = el('span', 'milestone-row__tip');
-      tip.id = tipId;
-      tip.setAttribute('role', 'tooltip');
-      tip.textContent =
-        `${int.format(spec.value)} career ${spec.unit}, ${String(percent)}% of the way to ` +
-        `${int.format(next.target)}.` +
-        (games
-          ? ` Averaging ${dec1.format(spec.perGame)} per game at ${paceLabel}, he'd get there in about ${String(games)} ${games === 1 ? 'game' : 'games'}.`
-          : '');
-      track.append(bar, ends, tip);
-
-      const note = el('p', 'milestone-row__note');
-      note.append(el('strong', undefined, `${int.format(next.remaining)} to go`));
-      if (games) {
-        note.append(` · about ${String(games)} ${games === 1 ? 'game' : 'games'} at ${paceLabel}`);
-      }
-
-      row.append(head, track, note);
-      return row;
+    ...LADDERS.map((ladder) => {
+      const value = career.totals[ladder.stat];
+      const next = nextMilestone(value, ladder.step);
+      const percent = Math.round((value / next.target) * 100);
+      return barRow({
+        label: ladder.label,
+        value,
+        max: next.target,
+        position: `${int.format(value)} of ${int.format(next.target)}`,
+        lines: [
+          { strong: `${int.format(next.remaining)} to go.`, rest: '' },
+          ...paceLines(career, ladder, next.remaining),
+        ],
+        tip: `${int.format(value)} career ${ladder.unit}, ${String(percent)}% of the way to ${int.format(next.target)}.`,
+      });
     }),
   );
+}
+
+/** The Bengals career leaderboard for each stat: who he's passed, who's next, and the record. */
+function renderHistory(target: HTMLElement, career: Career): void {
+  target.replaceChildren(
+    ...LADDERS.map((ladder) => {
+      const status = ladderStatus(career, ladder);
+      const { value, record, next } = status;
+      const markers = ladder.leaders.map((l) => ({
+        value: l.value,
+        label: `${l.name}: ${int.format(l.value)}`,
+        passed: value > l.value,
+      }));
+      const passedNames = status.passed.map((l) => l.name);
+
+      if (status.holdsRecord) {
+        return barRow({
+          label: ladder.label,
+          value,
+          max: value,
+          position: `Bengals record: ${int.format(value)}`,
+          markers,
+          lines: [
+            {
+              strong: 'He owns the record.',
+              rest: ` Passed ${record.name} (${int.format(record.value)}) for the most in team history, and still adding to it.`,
+            },
+          ],
+          tip: `Joe Burrow holds the Bengals record with ${int.format(value)} ${ladder.unit}. The previous record was ${record.name}'s ${int.format(record.value)}.`,
+        });
+      }
+
+      const toRecord = record.value - value + 1;
+      const lines: BarSpec['lines'] = [];
+      if (next) {
+        lines.push({
+          strong: `Next up: ${next.name} (${int.format(next.value)}), ${int.format(next.value - value + 1)} away.`,
+          rest: '',
+        });
+      }
+      if (next !== record) {
+        lines.push(
+          `${int.format(toRecord)} to break ${record.name}'s record of ${int.format(record.value)}.`,
+        );
+      }
+      lines.push(
+        ...paceLines(career, ladder, toRecord).map((t) =>
+          t.replace('get there', 'break the record'),
+        ),
+      );
+      return barRow({
+        label: ladder.label,
+        value,
+        max: record.value,
+        position: `${int.format(value)} of ${int.format(record.value)}`,
+        markers,
+        lines,
+        tip:
+          `Bengals record: ${record.name}, ${int.format(record.value)} ${ladder.unit}.` +
+          (passedNames.length ? ` Already passed: ${passedNames.join(', ')}.` : '') +
+          ' Ticks on the bar mark each Bengals great on the way.',
+      });
+    }),
+  );
+}
+
+/** Franchise records measured from his live stats (so a new best season updates on its own). */
+function renderOwned(target: HTMLElement, career: Career): boolean {
+  const held = ownedRecords(career).filter((r) => r.holds);
+  target.replaceChildren(
+    ...held.map((r) => {
+      const isRate = r.year === undefined;
+      const pct = r.title.includes('%') ? '%' : '';
+      const value = isRate ? dec1.format(r.value) + pct : int.format(r.value);
+      const box = el('div', 'stat stat--owned');
+      const runner = r.runnerUp;
+      const detail = `${r.year ? `Set in ${String(r.year)}. ` : ''}Next best: ${runner.name}, ${
+        isRate ? dec1.format(runner.value) + pct : int.format(runner.value)
+      }${'year' in runner && runner.year ? ` (${String(runner.year)})` : ''}`;
+      box.append(
+        el('span', 'stat__value', value),
+        el('span', 'stat__label', r.title),
+        el('span', 'stat__detail', detail),
+      );
+      return box;
+    }),
+  );
+  return held.length > 0;
+}
+
+/** "Just reached" callout for anything he's hit in the last week. */
+function renderJustReached(target: HTMLElement, items: StatsResponse['justReached']): boolean {
+  if (!items?.length) return false;
+  const when = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'America/New_York',
+  });
+  const list = el('ul', 'just-reached__list');
+  for (const item of items) {
+    const li = el('li');
+    li.append(
+      el('span', 'just-reached__what', item.label),
+      el('span', 'just-reached__when', when.format(new Date(item.reachedAt))),
+    );
+    list.append(li);
+  }
+  target.replaceChildren(el('p', 'just-reached__tag', 'Just reached'), list);
+  return true;
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -288,6 +398,9 @@ async function init(): Promise<void> {
     renderHero(part(root, 'season-hero'), current);
   }
   renderMilestones(part(root, 'milestone-list'), career);
+  renderHistory(part(root, 'history-list'), career);
+  const hasOwned = renderOwned(part(root, 'owned-list'), career);
+  const hasRecent = renderJustReached(part(root, 'just-reached'), data.justReached);
   renderChart(part(root, 'chart-figure'), career.seasons);
   const table = root.querySelector<HTMLTableElement>('[data-role="season-table"]');
   if (table) renderTable(table, career);
@@ -301,9 +414,18 @@ async function init(): Promise<void> {
   source.textContent = `${data.stale ? 'Showing saved stats. ' : ''}Updated ${asOf} ET · Regular season · Source: ESPN`;
 
   status.remove();
-  for (const role of ['career', 'season', 'milestones', 'chart', 'table', 'source']) {
-    part(root, role).hidden = role === 'season' && !current;
-  }
+  const show: Record<string, boolean> = {
+    'just-reached': hasRecent,
+    career: true,
+    season: Boolean(current),
+    milestones: true,
+    history: true,
+    owned: hasOwned,
+    chart: true,
+    table: true,
+    source: true,
+  };
+  for (const [role, visible] of Object.entries(show)) part(root, role).hidden = !visible;
   root.setAttribute('aria-busy', 'false');
 }
 
