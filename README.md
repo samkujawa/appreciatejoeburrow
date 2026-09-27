@@ -1,6 +1,6 @@
 # AppreciateJoeBurrow.com
 
-A wall of Joe Burrow highlights — YouTube videos playing all at once, mixed with NFL clips from X —
+A wall of Joe Burrow highlights; YouTube videos playing all at once, mixed with NFL clips from X —
 in a different order every visit.
 
 Static site built with Vite and TypeScript. No framework, no backend, no cookies.
