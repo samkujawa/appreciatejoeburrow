@@ -7,11 +7,16 @@ export const MAX_VOTES_PER_VISITOR = 3;
 export type VoteCheck =
   { ok: true; choice: string } | { ok: false; status: 400 | 409; error: string };
 
-/** Validates `{ poll, choice }` against the current poll. */
-export function checkVote(body: unknown, poll: Poll | null, now: number): VoteCheck {
+/** Validates `{ poll, choice }` against the current poll, which closes at `closesAt` (ms). */
+export function checkVote(
+  body: unknown,
+  poll: Poll | null,
+  now: number,
+  closesAt: number,
+): VoteCheck {
   const b = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
   if (!poll || b.poll !== poll.id) return { ok: false, status: 409, error: 'not the current poll' };
-  if (now >= Date.parse(poll.closes)) return { ok: false, status: 409, error: 'voting is closed' };
+  if (now >= closesAt) return { ok: false, status: 409, error: 'voting is closed' };
   const choice = b.choice;
   if (typeof choice !== 'string' || !poll.candidates.includes(choice)) {
     return { ok: false, status: 400, error: 'not a candidate' };
