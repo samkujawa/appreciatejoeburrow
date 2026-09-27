@@ -2,6 +2,8 @@ import type { CardContent } from '../lib/card-content';
 import { canvasToFile, renderCard } from '../lib/share-card';
 
 let dialog: HTMLDialogElement | null = null;
+/** Bumped on every open, so a slow render for an earlier card can't overwrite a newer one. */
+let openCount = 0;
 
 function ensureDialog(): HTMLDialogElement {
   if (dialog) return dialog;
@@ -48,6 +50,7 @@ export async function openShareCard(content: CardContent, photoSrc: string | nul
   const download = d.querySelector<HTMLAnchorElement>('.share-dialog__download');
   const hint = d.querySelector<HTMLElement>('.share-dialog__hint');
   if (!status || !preview || !share || !download || !hint) return;
+  const current = ++openCount;
 
   status.hidden = false;
   status.textContent = 'Making your card…';
@@ -58,6 +61,7 @@ export async function openShareCard(content: CardContent, photoSrc: string | nul
   if (!d.open) d.showModal();
 
   const canvas = await renderCard(content, photoSrc);
+  if (current !== openCount) return;
   const url = canvas.toDataURL('image/png');
   preview.src = url;
   preview.alt = `${content.kicker}: ${content.big} ${content.label}`;
@@ -68,6 +72,7 @@ export async function openShareCard(content: CardContent, photoSrc: string | nul
   download.download = `${content.slug}.png`;
 
   const file = await canvasToFile(canvas, content.slug);
+  if (current !== openCount) return;
   // Not every browser can share files (desktop Firefox can't), so feature-check first.
   const canShareFile =
     file !== null && 'canShare' in navigator && navigator.canShare({ files: [file] });
