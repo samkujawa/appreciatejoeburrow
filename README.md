@@ -112,6 +112,11 @@ to it.
   `base.css`): Highlights · Stats · About, with the current page underlined, plus an Instagram
   link to [@appreciatejoeburrow](https://www.instagram.com/appreciatejoeburrow/) (also in the
   footers).
+- **Share cards.** Share buttons on the stats page (career snapshot, each Bengals-history row,
+  each "Just reached" item) and on counter-milestone celebrations make a 1080×1350 image
+  (Instagram's portrait size) in the site's style (`lib/share-card.ts` draws it on a canvas,
+  `lib/card-content.ts` decides the words). A preview opens with **Share**, which uses the phone's
+  share sheet so it can go straight into Instagram, and **Download** everywhere.
 - **Joe Cool mode.** The sunglasses button in the nav (every page) switches to an ice-blue
   "Joe Brrr" theme with sunglasses on the headshot and a new tagline; typing "joecool" also
   toggles it. It's a class on `<html>` that swaps the color tokens (`tokens.css`), remembered in

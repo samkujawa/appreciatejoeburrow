@@ -4,7 +4,10 @@
  * handful of requests. If the API is unreachable, the button still animates and the count hides.
  */
 
+import { CONFIG } from '../config';
+import { counterCard } from '../lib/card-content';
 import { crossedMilestones, isNines } from '../lib/milestones';
+import { shareButton } from './share-dialog';
 
 const ENDPOINT = '/api/appreciate';
 /** Must match MAX_TAPS_PER_REQUEST in worker/limits.ts. */
@@ -198,7 +201,13 @@ function celebrate(milestone: number, format: Intl.NumberFormat): void {
   close.addEventListener('click', dismiss);
   window.setTimeout(dismiss, CELEBRATION_MS);
 
-  box.append(title, note, close);
+  const actions = document.createElement('div');
+  actions.className = 'milestone__actions';
+  actions.append(
+    shareButton('Share it', () => counterCard(milestone), CONFIG.photoSrc),
+    close,
+  );
+  box.append(title, note, actions);
   document.body.append(box);
 
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;

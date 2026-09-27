@@ -6,7 +6,10 @@ import './styles/index.css';
 import './styles/stats.css';
 
 import type { Career, Season } from '../worker/espn';
+import { shareButton } from './components/share-dialog';
+import { CONFIG } from './config';
 import { SCHEDULE } from './data/schedule';
+import { achievementCard, historyCard, statsCard, type CardContent } from './lib/card-content';
 import { choosePace, describeArrival, describePace, projectArrival } from './lib/projection';
 import { nextMilestone } from './lib/stat-milestones';
 import { initJoeCool } from './lib/joe-cool';
@@ -81,6 +84,8 @@ interface BarSpec {
   lines: (string | { strong: string; rest: string })[];
   /** Tooltip text (hover, or tap/focus on touch). */
   tip: string;
+  /** Share card for this row, if it has one. */
+  share?: () => CardContent;
 }
 
 let tipCount = 0;
@@ -94,6 +99,7 @@ function barRow(spec: BarSpec): HTMLElement {
   const position = el('span', 'milestone-row__position');
   position.textContent = spec.position;
   head.append(el('span', 'milestone-row__label', spec.label), position);
+  if (spec.share) head.append(shareButton('Share', spec.share, CONFIG.photoSrc));
 
   const track = el('div', 'milestone-row__track');
   track.tabIndex = 0;
@@ -179,8 +185,10 @@ function renderHistory(target: HTMLElement, career: Career): void {
       }));
       const passedNames = status.passed.map((l) => l.name);
 
+      const share = (): CardContent => historyCard(status);
       if (status.holdsRecord) {
         return barRow({
+          share,
           label: ladder.label,
           value,
           max: value,
@@ -215,6 +223,7 @@ function renderHistory(target: HTMLElement, career: Career): void {
         ),
       );
       return barRow({
+        share,
         label: ladder.label,
         value,
         max: record.value,
@@ -268,6 +277,7 @@ function renderJustReached(target: HTMLElement, items: StatsResponse['justReache
     li.append(
       el('span', 'just-reached__what', item.label),
       el('span', 'just-reached__when', when.format(new Date(item.reachedAt))),
+      shareButton('Share', () => achievementCard(item), CONFIG.photoSrc),
     );
     list.append(li);
   }
@@ -394,6 +404,9 @@ async function init(): Promise<void> {
   const { career } = data;
   const current = career.seasons.at(-1);
   renderHero(part(root, 'hero'), career.totals);
+  part(root, 'career')
+    .querySelector('.stats__h2')
+    ?.append(shareButton('Share', () => statsCard(career), CONFIG.photoSrc));
   if (current) {
     part(root, 'season-title').textContent = `${current.year} season`;
     renderHero(part(root, 'season-hero'), current);

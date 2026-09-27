@@ -325,3 +325,20 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+/* Share buttons inside section headings, bar rows and the just-reached list. */
+.stats__h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.stats__h2 .share-button {
+  font-family: var(--font-label);
+}
+.milestone-row__head .share-button {
+  order: 3;
+}
+.just-reached__list li {
+  align-items: center;
+}
