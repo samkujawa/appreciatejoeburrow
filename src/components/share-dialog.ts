@@ -14,6 +14,7 @@ function ensureDialog(): HTMLDialogElement {
       <img class="share-dialog__preview" alt="" hidden />
       <div class="share-dialog__actions">
         <button type="button" class="share-dialog__share" hidden>Share</button>
+        <button type="button" class="share-dialog__save" hidden>Save to Photos</button>
         <a class="share-dialog__download" hidden>Download</a>
         <button type="button" class="share-dialog__close">Close</button>
       </div>
@@ -31,23 +32,30 @@ function ensureDialog(): HTMLDialogElement {
   return d;
 }
 
+/** Phones and tablets, where saving should land in the photo library rather than Files. */
+function isTouchDevice(): boolean {
+  return window.matchMedia('(pointer: coarse)').matches;
+}
+
 /**
  * Renders a share card and shows it with Share (phone share sheet, e.g. straight into Instagram)
- * and Download buttons.
+ * and a way to keep it: Save to Photos on phones, Download on computers.
  */
 export async function openShareCard(content: CardContent, photoSrc: string | null): Promise<void> {
   const d = ensureDialog();
   const status = d.querySelector<HTMLElement>('.share-dialog__status');
   const preview = d.querySelector<HTMLImageElement>('.share-dialog__preview');
   const share = d.querySelector<HTMLButtonElement>('.share-dialog__share');
+  const save = d.querySelector<HTMLButtonElement>('.share-dialog__save');
   const download = d.querySelector<HTMLAnchorElement>('.share-dialog__download');
   const hint = d.querySelector<HTMLElement>('.share-dialog__hint');
-  if (!status || !preview || !share || !download || !hint) return;
+  if (!status || !preview || !share || !save || !download || !hint) return;
 
   status.hidden = false;
   status.textContent = 'Making your card…';
   preview.hidden = true;
   share.hidden = true;
+  save.hidden = true;
   download.hidden = true;
   hint.textContent = '';
   if (!d.open) d.showModal();
@@ -61,18 +69,37 @@ export async function openShareCard(content: CardContent, photoSrc: string | nul
 
   download.href = url;
   download.download = `${content.slug}.png`;
-  download.hidden = false;
 
   const file = await canvasToFile(canvas, content.slug);
   // Not every browser can share files (desktop Firefox can't), so feature-check first.
-  if (file && 'canShare' in navigator && navigator.canShare({ files: [file] })) {
+  const canShareFile =
+    file !== null && 'canShare' in navigator && navigator.canShare({ files: [file] });
+  // A cancelled share sheet rejects; nothing to do.
+  const shareFile = (data: ShareData) => {
+    navigator.share(data).catch(() => undefined);
+  };
+
+  if (canShareFile) {
     share.hidden = false;
     share.onclick = () => {
-      navigator.share({ files: [file], text: 'appreciatejoeburrow.com' }).catch(() => undefined); // Cancelled share sheet: nothing to do.
+      shareFile({ files: [file], text: 'appreciatejoeburrow.com' });
     };
-    hint.textContent = 'On your phone, Share → Instagram posts it straight to your feed or story.';
+  }
+
+  if (canShareFile && isTouchDevice()) {
+    // A web page can't write to the photo library directly; the share sheet's "Save Image" does.
+    // Share only the file: with text attached, iOS can leave "Save Image" out of the sheet.
+    save.hidden = false;
+    save.onclick = () => {
+      shareFile({ files: [file] });
+    };
+    hint.textContent =
+      'Save to Photos → Save Image puts it in your camera roll. Share → Instagram posts it straight to your feed or story.';
   } else {
-    hint.textContent = 'Download it, then post it to Instagram from your phone.';
+    download.hidden = false;
+    hint.textContent = canShareFile
+      ? 'On your phone, Share → Instagram posts it straight to your feed or story.'
+      : 'Download it, then post it to Instagram from your phone.';
   }
 }
 
