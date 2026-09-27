@@ -143,3 +143,116 @@
 .appreciate__mine:empty {
   display: none;
 }
+
+/* Game-day banner across the top of the page. */
+.gameday {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 10px var(--gutter);
+  background: var(--color-orange);
+  color: var(--color-ink);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.gameday__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 9px 2px;
+  background: var(--color-ink);
+  color: var(--color-orange);
+}
+.gameday__game {
+  font: 900 1.3rem/1 var(--font-display);
+  letter-spacing: 0.04em;
+}
+.gameday__detail {
+  font-size: 0.9rem;
+}
+/* Pulsing dot while the game is live. */
+.gameday[data-phase='live'] .gameday__tag::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff3b30;
+  animation: gameday-pulse 1.2s ease-in-out infinite;
+}
+@keyframes gameday-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* Milestone celebration: banner plus a burst of Bengals-colored confetti. */
+.milestone {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  z-index: 20;
+  width: min(92vw, 440px);
+  padding: 20px 22px 18px;
+  transform: translateX(-50%);
+  background: var(--color-ink);
+  border: 3px solid var(--color-orange);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+  text-align: center;
+  animation: milestone-in 0.35s ease-out;
+}
+.milestone__title {
+  margin: 0;
+  font: 900 clamp(1.6rem, 6vw, 2.2rem) / 1.05 var(--font-display);
+  text-transform: uppercase;
+}
+.milestone__title strong {
+  display: block;
+  color: var(--color-orange);
+  font-size: 1.6em;
+}
+.milestone__note {
+  margin: 8px 0 14px;
+  color: var(--color-muted);
+  letter-spacing: 0.04em;
+}
+.milestone__close {
+  padding: 10px 22px 9px;
+  border: 0;
+  background: var(--color-orange);
+  color: var(--color-ink);
+  font: 700 0.95rem/1 var(--font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+@keyframes milestone-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+}
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  overflow: hidden;
+  pointer-events: none;
+}
+.confetti span {
+  position: absolute;
+  top: -12px;
+  width: 9px;
+  height: 14px;
+  animation: confetti-fall linear forwards;
+}
+@keyframes confetti-fall {
+  to {
+    transform: translate(var(--drift, 0), 105vh) rotate(var(--spin, 360deg));
+  }
+}

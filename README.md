@@ -70,6 +70,16 @@ to it.
   seconds. Each visitor's own tally is kept in `localStorage`. If the API is unreachable, the
   button still animates and the count stays hidden. Fits Cloudflare's free plan (100k requests
   and 100k writes a day).
+- **Milestones.** When a visitor's batch of taps takes the global count across 100, 200, 500,
+  1,000, 2,000, 5,000, … (or Joe's number: 99, 999, 9,999, …), that visitor gets confetti and a
+  "You were appreciation #1,000" banner (`lib/milestones.ts`). The server counts batches one at
+  a time, so each milestone goes to exactly one visitor.
+- **Game day.** `src/data/schedule.ts` holds the season's kickoffs with their Eastern offsets
+  (EDT `-04:00` through October, EST `-05:00` from the November clock change; a test checks
+  every date). From midnight Eastern on game day a banner shows the matchup, kickoff in ET, the
+  network and a countdown; at kickoff it switches to **Game on** with a pulsing dot for 3.5
+  hours (`lib/gameday.ts`). TBD games (`kickoff: null`) are skipped until the weekly job fills
+  them in.
 - **Last game.** `src/data/last-game.ts` names the most recent game (label, result, date) and
   lists the IDs of its clips and posts, which must also be in the clip lists. Those tiles are
   pinned to the top with a **Last game** label under a banner. The section hides itself 10 days
@@ -192,9 +202,11 @@ index.html                 Page markup and meta tags
 src/
   main.ts                  Wires up the wall, buttons and page visibility
   config.ts                Photo, preload distance, timeouts
-  components/appreciate.ts The Appreciate button and count
+  components/appreciate.ts The Appreciate button, count and milestone celebration
+  components/gameday.ts    Game-day banner and countdown
   data/clips.ts            YouTube videos
   data/posts.ts            X posts
+  data/schedule.ts         2026 schedule for the game-day banner
   components/wall.ts       Tile lifecycle: lazy players, pause/play, removal
   components/tile.ts       Tile DOM
   lib/youtube-api.ts       Loads the IFrame API once

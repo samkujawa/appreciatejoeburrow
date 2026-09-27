@@ -4,6 +4,8 @@
  * handful of requests. If the API is unreachable, the button still animates and the count hides.
  */
 
+import { crossedMilestones, isNines } from '../lib/milestones';
+
 const ENDPOINT = '/api/appreciate';
 /** Must match MAX_TAPS_PER_REQUEST in worker/limits.ts. */
 const MAX_TAPS_PER_REQUEST = 25;
@@ -98,7 +100,13 @@ export function initAppreciate({ button, countBox, total, mine }: AppreciateElem
       });
       const body: unknown = await res.json();
       pending -= taps;
-      if (isCountResponse(body)) accept(body);
+      if (isCountResponse(body)) {
+        accept(body);
+        // The server counts batches one at a time, so the range this batch covered is ours alone.
+        const accepted = body.accepted ?? 0;
+        const hit = crossedMilestones(body.count - accepted, body.count).at(-1);
+        if (hit !== undefined) celebrate(hit, format);
+      }
     } catch {
       // Network hiccup: drop this batch rather than retry forever.
       pending = Math.max(0, pending - taps);
@@ -154,4 +162,62 @@ export function initAppreciate({ button, countBox, total, mine }: AppreciateElem
 
   render();
   void load();
+}
+
+const CONFETTI_PIECES = 60;
+const CELEBRATION_MS = 9_000;
+
+/** Confetti and a "You were appreciation #1,000" banner for the visitor whose tap hit a milestone. */
+function celebrate(milestone: number, format: Intl.NumberFormat): void {
+  document.querySelector('.milestone')?.remove();
+
+  const box = document.createElement('div');
+  box.className = 'milestone';
+  box.setAttribute('role', 'status');
+
+  const title = document.createElement('p');
+  title.className = 'milestone__title';
+  title.append('You were appreciation ');
+  const number = document.createElement('strong');
+  number.textContent = `#${format.format(milestone)}`;
+  title.append(number);
+
+  const note = document.createElement('p');
+  note.className = 'milestone__note';
+  note.textContent = isNines(milestone)
+    ? 'Nines across the board. Joe’s number. Screenshot it.'
+    : 'A milestone for the coolest man in Cincinnati. Screenshot it.';
+
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'milestone__close';
+  close.textContent = 'Nice';
+  const dismiss = (): void => {
+    box.remove();
+  };
+  close.addEventListener('click', dismiss);
+  window.setTimeout(dismiss, CELEBRATION_MS);
+
+  box.append(title, note, close);
+  document.body.append(box);
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const colors = ['#fb4f14', '#0e0b09', '#f6ede4'];
+  const layer = document.createElement('div');
+  layer.className = 'confetti';
+  layer.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < CONFETTI_PIECES; i++) {
+    const piece = document.createElement('span');
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.background = colors[i % colors.length] ?? '#fb4f14';
+    piece.style.animationDelay = `${Math.random() * 0.6}s`;
+    piece.style.animationDuration = `${2.2 + Math.random() * 1.6}s`;
+    piece.style.setProperty('--drift', `${Math.round(Math.random() * 160 - 80)}px`);
+    piece.style.setProperty('--spin', `${Math.round(Math.random() * 720 - 360)}deg`);
+    layer.append(piece);
+  }
+  document.body.append(layer);
+  window.setTimeout(() => {
+    layer.remove();
+  }, 4_500);
 }
