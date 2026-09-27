@@ -64,6 +64,18 @@ function fitFont(
   return size;
 }
 
+/**
+ * Draws one line with its top edge at `top` and returns the height its glyphs actually take.
+ * Measured rather than derived from the font size, because the "top" baseline sits differently
+ * across browsers (Safari draws lower) and fallback fonts have different proportions.
+ */
+function drawLine(ctx: CanvasRenderingContext2D, text: string, x: number, top: number): number {
+  ctx.textBaseline = 'alphabetic';
+  const m = ctx.measureText(text);
+  ctx.fillText(text, x, top + m.actualBoundingBoxAscent);
+  return m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+}
+
 function wrap(ctx: CanvasRenderingContext2D, text: string, width: number): string[] {
   const out: string[] = [];
   let line = '';
@@ -139,23 +151,21 @@ export async function renderCard(
 
   // Big number or word.
   ctx.letterSpacing = '0px';
-  ctx.textBaseline = 'top';
   const big = content.big.toUpperCase();
-  const bigSize = fitFont(ctx, big, DISPLAY, 900, 300, inner);
+  fitFont(ctx, big, DISPLAY, 900, 300, inner);
   ctx.fillStyle = BONE;
-  ctx.fillText(big, cx, y);
-  y += bigSize * 0.95 + 20;
+  y += drawLine(ctx, big, cx, y) + 44;
 
   // Label.
   ctx.letterSpacing = '4px';
   const label = content.label.toUpperCase();
-  const labelSize = fitFont(ctx, label, LABEL, 700, 64, inner);
+  fitFont(ctx, label, LABEL, 700, 64, inner);
   ctx.fillStyle = ORANGE;
-  ctx.fillText(label, cx, y);
-  y += labelSize + 44;
+  y += drawLine(ctx, label, cx, y) + 48;
 
   // Context lines.
   ctx.letterSpacing = '1px';
+  ctx.textBaseline = 'top';
   ctx.font = `500 44px ${LABEL}`;
   ctx.fillStyle = MUTED;
   for (const line of content.lines) {
