@@ -1,0 +1,31 @@
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px var(--gutter) 26px;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.footer p {
+  margin: 0;
+}
+
+.footer__names {
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.footer__accent {
+  color: var(--color-orange);
+  font-weight: 700;
+}
+
+.footer__fine {
+  max-width: 60ch;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  opacity: 0.8;
+}

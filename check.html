@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>Clip check · AppreciateJoeBurrow.com</title>
+    <style>
+      body {
+        font:
+          14px/1.5 ui-monospace,
+          monospace;
+        margin: 24px;
+        background: #0e0b09;
+        color: #f4ede6;
+      }
+      .ok {
+        color: #6fdc8c;
+      }
+      .fail {
+        color: #ff8266;
+      }
+      #players {
+        position: absolute;
+        left: -9999px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Clip check</h1>
+    <p>
+      Dev-only. Loads every clip in a real embedded player and reports which ones play. Not included
+      in the production build.
+    </p>
+    <pre id="log">Running…</pre>
+    <div id="players"></div>
+    <script type="module" src="/scripts/check-embeds.ts"></script>
+  </body>
+</html>

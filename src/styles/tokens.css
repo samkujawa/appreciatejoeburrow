@@ -1,0 +1,19 @@
+/* Single, deliberate dark look: Bengals orange on stadium-night black. */
+:root {
+  color-scheme: dark;
+
+  --color-orange: #fb4f14;
+  --color-orange-deep: #c93a08;
+  --color-ink: #0e0b09;
+  --color-ink-raised: #1a1411;
+  --color-bone: #f6ede4;
+  --color-muted: #a8978a;
+
+  --font-display: 'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif;
+  --font-label: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+
+  --gutter: 16px;
+  --wall-gap: 6px;
+  --tile-min: 340px;
+  --stripe-height: 22px;
+}

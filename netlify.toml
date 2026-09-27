@@ -1,0 +1,7 @@
+# Headers live in public/_headers so Cloudflare Pages can use the same file.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"

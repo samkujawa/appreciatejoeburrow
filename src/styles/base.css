@@ -1,0 +1,115 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-ink);
+  color: var(--color-bone);
+  font-family: var(--font-label);
+  font-weight: 500;
+  line-height: 1.4;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+main {
+  flex: 1;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-bone);
+  outline-offset: 3px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--gutter);
+  top: -100px;
+  z-index: 10;
+  padding: 10px 14px;
+  background: var(--color-bone);
+  color: var(--color-ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: calc(var(--gutter) + env(safe-area-inset-top, 0px));
+}
+
+/* Tiger stripes: the page's one loud element. */
+.stripes {
+  height: var(--stripe-height);
+  flex-shrink: 0;
+  background:
+    repeating-linear-gradient(
+      115deg,
+      var(--color-ink) 0 14px,
+      transparent 14px 38px,
+      var(--color-ink) 38px 46px,
+      transparent 46px 70px
+    ),
+    var(--color-orange);
+}
+
+.btn {
+  font: 700 0.95rem/1 var(--font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  background: var(--color-orange);
+  border: 0;
+  padding: 12px 20px 11px;
+  cursor: pointer;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+.btn:hover {
+  background: var(--color-orange-deep);
+  color: var(--color-bone);
+}
+.btn--light {
+  background: var(--color-bone);
+}
+.btn--light:hover {
+  background: var(--color-muted);
+  color: var(--color-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

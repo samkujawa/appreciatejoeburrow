@@ -1,0 +1,135 @@
+.wall {
+  /* Masonry: X posts vary in height, so tiles stack in columns instead of rows. */
+  columns: var(--tile-min);
+  column-gap: var(--wall-gap);
+  padding: 0 var(--wall-gap);
+}
+
+.tile {
+  position: relative;
+  max-width: 100%;
+  margin-bottom: var(--wall-gap);
+  overflow: hidden;
+  background: var(--color-ink-raised);
+  break-inside: avoid;
+}
+.tile--clip {
+  aspect-ratio: 16 / 9;
+}
+
+/* Until the embed renders, reserve roughly a video post's height so the columns don't jump. */
+.tile--post:not([data-state='ready']) {
+  min-height: 420px;
+}
+.tile--post[data-state='ready'] {
+  background: none;
+}
+.tile__post {
+  display: flex;
+  justify-content: center;
+}
+/* widgets.js sets 10px margins inline; the wall gap already spaces tiles. */
+.tile__post .twitter-tweet {
+  margin: 0 !important;
+  width: 100% !important;
+}
+/* The embed has its own links, so the title label only shows before it loads or when offline. */
+.tile--post[data-state='ready'] .tile__link {
+  display: none;
+}
+
+/* Thumbnail sits underneath until the player is ready, and stays when YouTube is unreachable. */
+.tile__thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.85) brightness(0.8);
+}
+
+.tile__frame,
+.tile__frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.tile__frame {
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.tile[data-state='ready'] .tile__frame {
+  opacity: 1;
+}
+
+.tile[data-state='loading']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 40%;
+  background: var(--color-orange);
+  animation: tile-loading 1.1s ease-in-out infinite alternate;
+}
+@keyframes tile-loading {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.tile__link {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 1;
+  max-width: 100%;
+  padding: 6px 10px 5px;
+  background: var(--color-orange);
+  color: var(--color-ink);
+  font: 700 0.8rem/1.2 var(--font-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateY(100%);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+.tile:hover .tile__link,
+.tile__link:focus-visible,
+.tile--post .tile__link,
+.tile[data-state='offline'] .tile__link {
+  opacity: 1;
+  transform: none;
+}
+.tile__link:focus-visible {
+  outline-offset: -3px;
+}
+
+/* Touch screens have no hover, so keep titles visible there. */
+@media (hover: none) {
+  .tile__link {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.wall-status {
+  margin: 0;
+  padding: 40px var(--gutter);
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
