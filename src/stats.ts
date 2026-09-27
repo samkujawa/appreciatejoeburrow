@@ -108,7 +108,9 @@ function renderMilestones(target: HTMLElement, career: Career): void {
     ...specs.map((spec, i) => {
       const next = nextMilestone(spec.value, spec.step);
       const games = gamesToReach(next.remaining, spec.perGame);
-      const percent = Math.round(next.progress * 100);
+      // The bar runs from 0 to the target, matching the "21,271 of 25,000" label beside it.
+      const share = spec.value / next.target;
+      const percent = Math.round(share * 100);
       const tipId = `milestone-tip-${String(i)}`;
 
       const row = el('div', 'milestone-row');
@@ -125,7 +127,7 @@ function renderMilestones(target: HTMLElement, career: Career): void {
       const track = el('div', 'milestone-row__track');
       track.tabIndex = 0;
       track.setAttribute('role', 'progressbar');
-      track.setAttribute('aria-valuemin', String(next.previous));
+      track.setAttribute('aria-valuemin', '0');
       track.setAttribute('aria-valuemax', String(next.target));
       track.setAttribute('aria-valuenow', String(spec.value));
       track.setAttribute(
@@ -135,19 +137,16 @@ function renderMilestones(target: HTMLElement, career: Career): void {
       track.setAttribute('aria-describedby', tipId);
       const bar = el('div', 'milestone-row__bar');
       const fill = el('span', 'milestone-row__fill');
-      fill.style.width = `${String(Math.max(2, next.progress * 100))}%`;
+      fill.style.width = `${String(Math.max(2, share * 100))}%`;
       bar.append(fill);
       const ends = el('div', 'milestone-row__ends');
-      ends.append(
-        el('span', undefined, int.format(next.previous)),
-        el('span', undefined, int.format(next.target)),
-      );
+      ends.append(el('span', undefined, '0'), el('span', undefined, int.format(next.target)));
       const tip = el('span', 'milestone-row__tip');
       tip.id = tipId;
       tip.setAttribute('role', 'tooltip');
       tip.textContent =
-        `${int.format(spec.value)} ${spec.unit} so far, ${String(percent)}% of the way from ` +
-        `${int.format(next.previous)} to ${int.format(next.target)}.` +
+        `${int.format(spec.value)} career ${spec.unit}, ${String(percent)}% of the way to ` +
+        `${int.format(next.target)}.` +
         (games
           ? ` Averaging ${dec1.format(spec.perGame)} per game at ${paceLabel}, he'd get there in about ${String(games)} ${games === 1 ? 'game' : 'games'}.`
           : '');
