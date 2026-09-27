@@ -17,6 +17,11 @@ export default defineConfig({
       },
     },
   },
+  server: {
+    // The Appreciate counter lives in the Worker. Run `npm run worker:dev` alongside `npm run dev`
+    // to use it locally; without it the count just stays hidden.
+    proxy: { '/api': 'http://localhost:8787' },
+  },
   preview: {
     headers: productionHeaders ?? {},
   },
