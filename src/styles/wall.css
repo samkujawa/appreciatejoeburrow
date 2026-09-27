@@ -1,17 +1,27 @@
 .wall {
-  /* Masonry: X posts vary in height, so tiles stack in columns instead of rows. */
-  columns: var(--tile-min);
+  /* Masonry built in JS (components/wall.ts): tiles go into the shortest column, so the reading
+     order runs across rows and the first row is always the first few tiles. */
+  display: flex;
+  align-items: flex-start;
   column-gap: var(--wall-gap);
-  padding: 0 var(--wall-gap);
+  padding: 0 var(--wall-gap) var(--wall-gap);
+}
+.wall__col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wall-gap);
+}
+.wall-sentinel {
+  height: 1px;
 }
 
 .tile {
   position: relative;
   max-width: 100%;
-  margin-bottom: var(--wall-gap);
   overflow: hidden;
   background: var(--color-ink-raised);
-  break-inside: avoid;
 }
 .tile--clip {
   aspect-ratio: 16 / 9;

@@ -27,9 +27,16 @@ npm run dev      # http://localhost:5173
 ## How it works
 
 - **Shuffle and mix.** `src/data/clips.ts` holds the YouTube videos and `src/data/posts.ts` the X
-  posts. Each list is shuffled (Fisher–Yates) on every load and whenever someone presses
-  **Reshuffle the wall**, then the posts are spread evenly between the videos. Tiles stack in
-  masonry columns because X posts vary in height.
+  posts (video and photo posts). Each list is shuffled (Fisher–Yates) on every load and whenever
+  someone presses **Reshuffle the wall** (`lib/order.ts`). The first row is always videos (at
+  least three on narrow screens); after that, posts are spread evenly between the videos.
+- **Fresh every visit.** Tiles a visitor actually sees (half on screen) are remembered in their
+  browser's `localStorage` (`lib/seen.ts`, last 60), and pushed behind unseen tiles on the next
+  visit or reshuffle. Nothing leaves the browser; without storage it's a plain shuffle.
+- **Masonry layout.** `components/wall.ts` builds the columns itself, adding each tile to the
+  shortest column, so the reading order runs across rows (CSS `columns` would fill top to bottom
+  and put random tiles in the first row). The column count follows the wall's width and the
+  layout is rebuilt only when that count changes.
 - **Why both.** Most NFL-owned YouTube uploads refuse to play on other sites (player error 150),
   so NFL-era single plays come from the NFL's own X posts instead. X embeds are click-to-play,
   so the YouTube tiles provide the constant motion.
@@ -37,9 +44,11 @@ npm run dev      # http://localhost:5173
   no controls. When a player is ready it jumps to a random point in the video, so long
   compilations show different plays each visit. When a video ends it jumps to a new random
   point instead of restarting at 0:00.
-- **Performance.** Players are only created when a tile scrolls within 300px of the viewport,
-  and tiles pause when they leave the screen or the tab is hidden. Sixteen live players at once
-  is heavy; this keeps it to the ones people can see.
+- **Performance.** Tiles are added in batches of 24 as the visitor nears the end of the wall.
+  Players are only created when a tile scrolls within 300px of the viewport, pause when they
+  leave the screen or the tab is hidden, and are destroyed back to their thumbnail after 20
+  seconds off screen, so scrolling through ~100 videos never leaves ~100 players alive. All of
+  these numbers are in `src/config.ts`.
 - **Broken tiles remove themselves.** If YouTube reports a video as removed, private or not
   embeddable (error codes 2, 5, 100, 101, 150), or X can't render a post, that tile is removed.
 - **X posts load lazily.** X's `widgets.js` is only fetched once a post scrolls near the screen,

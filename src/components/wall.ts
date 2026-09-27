@@ -1,8 +1,8 @@
 import type { Clip } from '../data/clips';
 import type { Post } from '../data/posts';
-import { interleave } from '../lib/mix';
+import { orderWall, type WallItem } from '../lib/order';
 import { isFatalPlayerError, pickStartSeconds, watchUrl } from '../lib/playback';
-import { shuffle } from '../lib/random';
+import type { SeenStore } from '../lib/seen';
 import { loadXWidgets } from '../lib/x-widgets';
 import { loadYouTubeApi } from '../lib/youtube-api';
 import { createClipTile, createPostTile, setTileState, type TileElements } from './tile';
@@ -12,11 +12,18 @@ export interface WallOptions {
   apiTimeoutMs: number;
   endBufferSeconds: number;
   startPaused: boolean;
-  /** Called whenever the number of tiles changes (after load or removals). */
+  /** A video off screen this long is torn down back to its thumbnail to free memory. */
+  unmountAfterMs: number;
+  /** Tiles added per batch; the next batch loads as the visitor nears the end of the wall. */
+  batchSize: number;
+  /** Tracks what this visitor has seen so the next visit leads with fresh tiles. */
+  seen: SeenStore;
+  /** Called whenever the number of tiles (shown plus not yet loaded) changes. */
   onTileCountChange?: (count: number) => void;
 }
 
 interface BaseTile extends TileElements {
+  id: string;
   mounting: boolean;
   ready: boolean;
   visible: boolean;
@@ -26,6 +33,8 @@ interface ClipTile extends BaseTile {
   kind: 'clip';
   clip: Clip;
   player: YT.Player | null;
+  /** Pending teardown for a player that has scrolled away; cleared if it comes back. */
+  unmountTimer: number | null;
 }
 
 /** X embeds are click-to-play, so post tiles only need mounting, never pausing. */
@@ -60,6 +69,10 @@ export function createWall(
   options: WallOptions,
 ): Wall {
   let tiles: Tile[] = [];
+  let columns: HTMLElement[] = [];
+  /** The full reading order for this render; `tiles` holds the ones already added. */
+  let order: WallItem[] = [];
+  let nextIndex = 0;
   let paused = options.startPaused;
   let pageHidden = document.hidden;
   // Bumped on every render so async work from an old layout can tell it's stale.
@@ -69,6 +82,35 @@ export function createWall(
   const observer = new IntersectionObserver(handleIntersections, {
     rootMargin: options.preloadMargin,
   });
+  // Marks tiles as seen only once they're genuinely on screen, not just preloading.
+  const seenObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const tile = byElement.get(entry.target);
+        if (tile) options.seen.add(tile.id);
+        seenObserver.unobserve(entry.target);
+      }
+    },
+    { threshold: 0.5 },
+  );
+  // Loads the next batch as the visitor approaches the end of the wall.
+  const sentinel = document.createElement('div');
+  sentinel.className = 'wall-sentinel';
+  sentinel.setAttribute('aria-hidden', 'true');
+  root.after(sentinel);
+  const batchObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting)) addBatch();
+    },
+    { rootMargin: '1200px 0px' },
+  );
+  batchObserver.observe(sentinel);
+  // Column count follows the wall's width; rebuild only when it actually changes.
+  const resizeObserver = new ResizeObserver(() => {
+    if (order.length > 0 && columnCount() !== columns.length) layout();
+  });
+  resizeObserver.observe(root);
 
   function shouldPlay(tile: ClipTile): boolean {
     return !paused && !pageHidden && tile.visible;
@@ -90,12 +132,47 @@ export function createWall(
       const tile = byElement.get(entry.target);
       if (!tile) continue;
       tile.visible = entry.isIntersecting;
+      if (tile.kind === 'clip') scheduleUnmount(tile);
       if (tile.visible && !tile.ready && !tile.mounting) {
         if (tile.kind === 'clip' && !tile.player) void mountPlayer(tile);
         else if (tile.kind === 'post') void mountPost(tile);
       }
       syncPlayback(tile);
     }
+  }
+
+  /**
+   * Long walls would otherwise pile up dozens of paused players. Once a video has been off screen
+   * for a while, destroy it and show the thumbnail again; it remounts when scrolled back to.
+   */
+  function scheduleUnmount(tile: ClipTile): void {
+    if (tile.unmountTimer !== null) window.clearTimeout(tile.unmountTimer);
+    tile.unmountTimer = null;
+    if (tile.visible || !tile.player) return;
+    tile.unmountTimer = window.setTimeout(() => {
+      tile.unmountTimer = null;
+      if (tile.visible) return;
+      unmountPlayer(tile);
+    }, options.unmountAfterMs);
+  }
+
+  function unmountPlayer(tile: ClipTile): void {
+    const frame = tile.player?.getIframe().parentElement ?? null;
+    try {
+      tile.player?.destroy();
+    } catch {
+      // Player may already be torn down by YouTube; nothing to clean up.
+    }
+    tile.player = null;
+    tile.ready = false;
+    tile.mounting = false;
+    // The API replaced the mount element with its iframe, so give the next player a fresh one.
+    if (frame) {
+      const mount = document.createElement('div');
+      frame.replaceChildren(mount);
+      tile.mount = mount;
+    }
+    setTileState(tile.root, 'idle');
   }
 
   async function mountPlayer(tile: ClipTile): Promise<void> {
@@ -193,7 +270,10 @@ export function createWall(
 
   function destroyTile(tile: Tile): void {
     observer.unobserve(tile.root);
+    seenObserver.unobserve(tile.root);
     if (tile.kind !== 'clip') return;
+    if (tile.unmountTimer !== null) window.clearTimeout(tile.unmountTimer);
+    tile.unmountTimer = null;
     try {
       tile.player?.destroy();
     } catch {
@@ -202,39 +282,92 @@ export function createWall(
     tile.player = null;
   }
 
+  function remainingCount(): number {
+    return tiles.length + (order.length - nextIndex);
+  }
+
   function removeTile(tile: Tile): void {
     destroyTile(tile);
     tile.root.remove();
     tiles = tiles.filter((t) => t !== tile);
-    options.onTileCountChange?.(tiles.length);
+    options.onTileCountChange?.(remainingCount());
   }
 
-  function track<T extends Tile>(tile: T): T {
+  function columnCount(): number {
+    const style = getComputedStyle(root);
+    const min = parseFloat(style.getPropertyValue('--tile-min')) || 340;
+    const gap = parseFloat(style.columnGap) || 0;
+    const width = root.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    return Math.max(1, Math.floor((width + gap) / (min + gap)));
+  }
+
+  /** The column whose bottom is highest, so tiles fill in roughly row by row. */
+  function shortestColumn(): HTMLElement {
+    return columns.reduce((a, b) => (b.offsetHeight < a.offsetHeight ? b : a));
+  }
+
+  function buildTile(item: WallItem): Tile {
+    const fresh = { mounting: false, ready: false, visible: false };
+    const tile: Tile =
+      item.kind === 'clip'
+        ? {
+            ...createClipTile(item.clip),
+            ...fresh,
+            id: item.clip.id,
+            kind: 'clip',
+            clip: item.clip,
+            player: null,
+            unmountTimer: null,
+          }
+        : {
+            ...createPostTile(item.post),
+            ...fresh,
+            id: item.post.id,
+            kind: 'post',
+            post: item.post,
+          };
     byElement.set(tile.root, tile);
     return tile;
   }
 
-  function render(): void {
+  function addBatch(): void {
+    if (nextIndex >= order.length || columns.length === 0) return;
+    const batch = order.slice(nextIndex, nextIndex + options.batchSize);
+    nextIndex += batch.length;
+    for (const item of batch) {
+      const tile = buildTile(item);
+      tiles.push(tile);
+      shortestColumn().append(tile.root);
+      observer.observe(tile.root);
+      seenObserver.observe(tile.root);
+    }
+  }
+
+  /** Clears the wall and lays out `order` from the top in the current number of columns. */
+  function layout(): void {
     generation += 1;
     tiles.forEach(destroyTile);
+    tiles = [];
+    nextIndex = 0;
     root.setAttribute('aria-busy', 'true');
 
-    const fresh = { mounting: false, ready: false, visible: false };
-    tiles = interleave<Tile, Tile>(
-      shuffle(clips).map((clip) =>
-        track({ ...createClipTile(clip), ...fresh, kind: 'clip', clip, player: null }),
-      ),
-      shuffle(posts).map((post) =>
-        track({ ...createPostTile(post), ...fresh, kind: 'post', post }),
-      ),
-    );
-
-    root.replaceChildren(...tiles.map((t) => t.root));
-    tiles.forEach((t) => {
-      observer.observe(t.root);
+    columns = Array.from({ length: columnCount() }, () => {
+      const col = document.createElement('div');
+      col.className = 'wall__col';
+      return col;
     });
+    root.replaceChildren(...columns);
+    addBatch();
+
     root.setAttribute('aria-busy', 'false');
-    options.onTileCountChange?.(tiles.length);
+    options.onTileCountChange?.(remainingCount());
+  }
+
+  function render(): void {
+    // Lead with a full row of videos, and at least a few on narrow screens with one column.
+    const leadClips = Math.max(columnCount(), 3);
+    order = orderWall(clips, posts, { seen: options.seen.load(), leadClips });
+    layout();
   }
 
   return {
@@ -251,7 +384,12 @@ export function createWall(
       generation += 1;
       tiles.forEach(destroyTile);
       observer.disconnect();
+      seenObserver.disconnect();
+      batchObserver.disconnect();
+      resizeObserver.disconnect();
+      sentinel.remove();
       tiles = [];
+      order = [];
       root.replaceChildren();
     },
   };
