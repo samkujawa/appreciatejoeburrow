@@ -119,3 +119,64 @@ img {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Site navigation: pinned to the top of every page. */
+.sitenav {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px var(--gutter);
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  background: rgb(14 11 9 / 0.94);
+  border-bottom: 2px solid var(--color-orange);
+  backdrop-filter: blur(6px);
+}
+.sitenav__brand {
+  color: var(--color-bone);
+  font: 900 1.5rem/1 var(--font-display);
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+.sitenav__tabs {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  gap: clamp(10px, 4vw, 28px);
+}
+.sitenav__tab {
+  padding: 8px 2px 6px;
+  border-bottom: 3px solid transparent;
+  color: var(--color-muted);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.sitenav__tab:hover {
+  color: var(--color-bone);
+}
+.sitenav__tab[aria-current='page'] {
+  color: var(--color-bone);
+  border-bottom-color: var(--color-orange);
+}
+.sitenav__ig {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--color-bone);
+}
+.sitenav__ig:hover {
+  color: var(--color-orange);
+}
+.sitenav__ig svg {
+  width: 22px;
+  height: 22px;
+}
+/* Anchors land below the pinned bar. */
+html {
+  scroll-padding-top: 64px;
+}

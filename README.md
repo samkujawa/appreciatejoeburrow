@@ -108,7 +108,11 @@ to it.
   real responses in `tests/fixtures/`. The Worker calls `site.web.api.espn.com` with an
   identifying User-Agent; ESPN's CDN refuses requests without one (and `site.api.espn.com`
   refuses custom ones).
-- **About.** A short section above the footer, linked from the header and footer. The wall
+- **Navigation.** A bar pinned to the top of every page (`.sitenav` in each HTML page, styles in
+  `base.css`): Highlights · Stats · About, with the current page underlined, plus an Instagram
+  link to [@appreciatejoeburrow](https://www.instagram.com/appreciatejoeburrow/) (also in the
+  footers).
+- **About.** A short section above the footer, linked from the nav and footer. The wall
   loads every tile before jumping there, so the link lands even though the wall keeps growing.
 - **Last game.** `src/data/last-game.ts` names the most recent game (label, result, date) and
   lists the IDs of its clips and posts, which must also be in the clip lists. Those tiles are
