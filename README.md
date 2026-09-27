@@ -98,11 +98,12 @@ Then check them:
    embedded player. This is the only way to catch videos that pass step 1 but refuse to play on
    other sites — which is most NFL-channel uploads. The page is dev-only and not deployed.
 
-## Adding a photo
+## The photo
 
-Put an image in `public/` (for example `public/joe-photo.jpg`) and set `photoSrc` in
-`src/config.ts` to `'/joe-photo.jpg'`. It shows as a round headshot above the title. Make sure
-you have the rights to whatever photo you use.
+The headshot above the title is `public/joe-photo.jpg`: an official White House photo from
+January 2020 (public domain, so no credit is required), cropped to 256×256. The source link is in
+`src/config.ts`. To swap it, replace the file with another square image you have the rights to
+(256×256 or larger), or set `photoSrc` to `null` to hide it.
 
 ## Deploying
 
