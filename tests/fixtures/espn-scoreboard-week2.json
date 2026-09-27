@@ -1,0 +1,88 @@
+{
+  "events": [
+    {
+      "id": "401872933",
+      "date": "2026-09-20T17:00Z",
+      "name": "Carolina Panthers at Atlanta Falcons",
+      "competitions": [
+        {
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 4,
+            "type": {
+              "id": "3",
+              "name": "STATUS_FINAL",
+              "state": "post",
+              "completed": true,
+              "description": "Final",
+              "detail": "Final",
+              "shortDetail": "Final"
+            },
+            "isTBDFlex": false
+          },
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "3",
+              "team": {
+                "id": "1",
+                "abbreviation": "ATL"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": "34",
+              "team": {
+                "id": "29",
+                "abbreviation": "CAR"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "401872934",
+      "date": "2026-09-20T17:00Z",
+      "name": "Cincinnati Bengals at Houston Texans",
+      "competitions": [
+        {
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 4,
+            "type": {
+              "id": "3",
+              "name": "STATUS_FINAL",
+              "state": "post",
+              "completed": true,
+              "description": "Final",
+              "detail": "Final",
+              "shortDetail": "Final"
+            },
+            "isTBDFlex": false
+          },
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "6",
+              "team": {
+                "id": "34",
+                "abbreviation": "HOU"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": "20",
+              "team": {
+                "id": "4",
+                "abbreviation": "CIN"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -77,6 +77,8 @@ export interface Wall {
   setHoverSound(enabled: boolean): void;
   /** Mutes whichever video currently has sound. */
   muteAll(): void;
+  /** Adds every remaining tile now, so anchors below the wall (like #about) stay put. */
+  loadAll(): void;
   destroy(): void;
 }
 
@@ -531,6 +533,9 @@ export function createWall(
     },
     muteAll() {
       setSoundTile(null);
+    },
+    loadAll() {
+      while (nextIndex < order.length && columns.length > 0) addBatch();
     },
     destroy() {
       generation += 1;

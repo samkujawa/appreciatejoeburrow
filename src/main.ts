@@ -113,11 +113,25 @@ function init(): void {
     mine: requireElement('.appreciate__mine', HTMLElement),
   });
 
+  // Links to #about sit below an ever-growing wall; load it all first so the jump lands.
+  function goToAbout(): void {
+    wall.loadAll();
+    document.querySelector('#about')?.scrollIntoView();
+  }
+  document.addEventListener('click', (event) => {
+    const link = (event.target as Element | null)?.closest('a[href="#about"]');
+    if (!link) return;
+    event.preventDefault();
+    history.replaceState(null, '', '#about');
+    goToAbout();
+  });
+
   initGameDay(requireElement('#gameday', HTMLParagraphElement), SCHEDULE);
   renderPhoto();
   updateToggle();
   updateHoverSound();
   wall.render();
+  if (location.hash === '#about') goToAbout();
 }
 
 init();

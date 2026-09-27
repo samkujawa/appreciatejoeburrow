@@ -42,3 +42,39 @@
   text-underline-offset: 3px;
   text-decoration-color: var(--color-orange);
 }
+
+.footer__credit a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+.footer__credit a:hover {
+  color: var(--color-orange);
+}
+
+/* About section just above the footer. */
+.about {
+  max-width: 62ch;
+  margin: 36px auto 8px;
+  padding: 26px var(--gutter) 0;
+  border-top: 2px solid var(--color-orange);
+  text-align: center;
+  color: var(--color-bone);
+  font-size: 1.1rem;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+.about p {
+  margin: 0 0 10px;
+}
+.about__title {
+  margin: 0 0 12px;
+  font: 900 clamp(1.6rem, 5vw, 2.2rem) / 1 var(--font-display);
+  text-transform: uppercase;
+  color: var(--color-orange);
+}
+.about__sign {
+  color: var(--color-muted);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
