@@ -5,7 +5,7 @@
  *   GET  /api/appreciate          -> { count }
  *   POST /api/appreciate {taps:n} -> { count, accepted }
  *   GET  /api/live                -> { game, burrow, asOf }                      (ESPN, 20s cache)
- *   GET  /api/stats               -> { career, asOf, stale }                     (ESPN, 10min cache)
+ *   GET  /api/stats               -> { career, asOf, stale, justReached }        (ESPN, 10min cache)
  */
 import { DurableObject } from 'cloudflare:workers';
 import {
@@ -18,6 +18,7 @@ import {
   type Career,
 } from './espn';
 import { isAllowedOrigin, parseTaps, TapLimiter } from './limits';
+import { achievements, type Achievement } from './records';
 
 export interface Env {
   ASSETS: Fetcher;
@@ -30,6 +31,8 @@ const READ_CACHE_SECONDS = 5;
 const LIVE_CACHE_SECONDS = 20;
 const STATS_CACHE_SECONDS = 600;
 const ESPN_TIMEOUT_MS = 5_000;
+/** How long something he reached stays highlighted on the stats page. */
+const JUST_REACHED_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface StatsSnapshot {
   career: Career;
@@ -60,6 +63,26 @@ export class AppreciationCounter extends DurableObject<Env> {
       await this.ctx.storage.put('count', count);
     }
     return { count, accepted };
+  }
+
+  /**
+   * Records when each achievement key was first seen and returns those times. On the very first
+   * run everything he's already done is stored as long ago (0), so only things reached after
+   * this feature shipped count as "just reached".
+   */
+  async noteAchievements(keys: string[]): Promise<Record<string, number>> {
+    const seen = (await this.ctx.storage.get<Record<string, number>>('achievements')) ?? null;
+    const now = Date.now();
+    const next: Record<string, number> = { ...seen };
+    let changed = seen === null;
+    for (const key of keys) {
+      if (next[key] === undefined) {
+        next[key] = seen === null ? 0 : now;
+        changed = true;
+      }
+    }
+    if (changed) await this.ctx.storage.put('achievements', next);
+    return next;
   }
 
   /** Last good stats from ESPN, served (marked stale) if ESPN is down or changes shape. */
@@ -155,20 +178,37 @@ async function readLive(): Promise<{ body: unknown; ok: boolean }> {
   };
 }
 
+/** Achievements first seen within the highlight window, newest first. */
+async function justReached(
+  env: Env,
+  list: Achievement[],
+): Promise<(Achievement & { reachedAt: string })[]> {
+  const seen = await counter(env).noteAchievements(list.map((a) => a.key));
+  const cutoff = Date.now() - JUST_REACHED_MS;
+  return list
+    .flatMap((a) => {
+      const at = seen[a.key] ?? 0;
+      return at > cutoff ? [{ ...a, at }] : [];
+    })
+    .sort((x, y) => y.at - x.at)
+    .map(({ at, ...a }) => ({ ...a, reachedAt: new Date(at).toISOString() }));
+}
+
 async function readStats(env: Env): Promise<{ body: unknown; ok: boolean }> {
   try {
     const career = parseCareer(await fetchJson(CAREER_URL));
     if (career) {
       const snapshot = { career, asOf: new Date().toISOString() };
       await counter(env).saveStats(snapshot);
-      return { body: { ...snapshot, stale: false }, ok: true };
+      const recent = await justReached(env, achievements(career));
+      return { body: { ...snapshot, stale: false, justReached: recent }, ok: true };
     }
   } catch {
     // Fall through to the last good copy.
   }
   const saved = await counter(env).loadStats();
   return saved
-    ? { body: { ...saved, stale: true }, ok: true }
+    ? { body: { ...saved, stale: true, justReached: [] }, ok: true }
     : { body: { error: 'stats unavailable' }, ok: false };
 }
 

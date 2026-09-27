@@ -265,3 +265,74 @@
   text-align: center;
   text-transform: uppercase;
 }
+
+/* Franchise-leader ticks along a history bar: hollow ahead of him, filled once passed. */
+.milestone-row__bar {
+  position: relative;
+}
+.milestone-row__tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  margin-left: -1px;
+  background: var(--color-bone);
+  opacity: 0.85;
+}
+.milestone-row__tick.is-passed {
+  background: var(--color-ink);
+  opacity: 0.6;
+}
+
+/* Records he owns. */
+.stats__owned {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.stat--owned {
+  border-top-color: #f4c542;
+}
+.stat__detail {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+/* "Just reached" callout at the top of the page. */
+.just-reached {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border: 2px solid #f4c542;
+  background: rgb(244 197 66 / 0.08);
+}
+.just-reached__tag {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 3px 9px 2px;
+  background: #f4c542;
+  color: var(--color-ink);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.just-reached__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.just-reached__list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.just-reached__what {
+  font: 900 1.3rem/1.15 var(--font-display);
+  text-transform: uppercase;
+}
+.just-reached__when {
+  color: var(--color-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

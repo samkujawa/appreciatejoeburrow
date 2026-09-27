@@ -33,6 +33,13 @@
     <main id="stats" class="stats" aria-busy="true">
       <p class="stats__status" data-role="status">Loading stats…</p>
 
+      <section
+        class="just-reached"
+        data-role="just-reached"
+        aria-label="Just reached"
+        hidden
+      ></section>
+
       <section class="stats__section" data-role="career" hidden>
         <h2 class="stats__h2">Career</h2>
         <div class="stats__hero" data-role="hero"></div>
@@ -46,6 +53,16 @@
       <section class="stats__section" data-role="milestones" hidden>
         <h2 class="stats__h2">Next milestones</h2>
         <div class="stats__milestones" data-role="milestone-list"></div>
+      </section>
+
+      <section class="stats__section" data-role="history" hidden>
+        <h2 class="stats__h2">Chasing Bengals history</h2>
+        <div class="stats__milestones" data-role="history-list"></div>
+      </section>
+
+      <section class="stats__section" data-role="owned" hidden>
+        <h2 class="stats__h2">Bengals records he owns</h2>
+        <div class="stats__hero stats__owned" data-role="owned-list"></div>
       </section>
 
       <section class="stats__section" data-role="chart" hidden>

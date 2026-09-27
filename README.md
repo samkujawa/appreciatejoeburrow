@@ -75,10 +75,25 @@ to it.
   "You were appreciation #1,000" banner (`lib/milestones.ts`). The server counts batches one at
   a time, so each milestone goes to exactly one visitor.
 - **Stats page.** `/stats` (`stats.html`, `src/stats.ts`) shows career and current-season
-  numbers, next milestones (labeled bars with a hover/tap tooltip and an "about N games at his
-  pace" projection), passing yards by season (plain SVG) and a season-by-season table. Data
-  comes from ESPN via `GET /api/stats`, cached 10 minutes. The last good copy is kept in the
+  numbers, next round-number milestones, **Chasing Bengals history** (the franchise career
+  leaderboard for yards, TDs and completions, with a tick for each Bengals great he's passing),
+  **Bengals records he owns**, passing yards by season (plain SVG) and a season-by-season table.
+  Data comes from ESPN via `GET /api/stats`, cached 10 minutes; the last good copy is kept in the
   Durable Object, so if ESPN is down or changes shape the page shows saved stats marked as such.
+  - **Everything about Burrow is computed live** (`worker/records.ts`): who's next, how far to
+    the record, when he breaks it (the row flips to "He owns the record"), and his best seasons.
+    Only the other quarterbacks' Bengals totals are stored, and they're retired, so they don't
+    change.
+  - **Projections** (`src/lib/projection.ts`) spell out the pace ("He's averaged 269.3 yards a
+    game over his career (21,271 in 79 games)") and turn it into a game on the schedule ("about
+    2 games: around Week 4 vs. Jaguars (Oct 4)"). They use this season's average once he's played
+    4 games, his career average before that; they count games, so bye weeks are skipped; TBD games
+    get an estimated date; anything past the known schedule (including the offseason) says
+    "next season".
+  - **Just reached.** The Worker notes when each achievement (a round-number milestone, passing a
+    Bengals great, a new single-season record) first appears in ESPN's numbers, and the page
+    highlights anything from the last 7 days. On its first run it treated everything already
+    achieved as old, so only new ones get highlighted.
 - **Game day.** `src/data/schedule.ts` holds the season's kickoffs with their Eastern offsets
   (EDT `-04:00` through October, EST `-05:00` from the November clock change; a test checks
   every date). From midnight Eastern on game day a banner shows the matchup, kickoff in ET, the
@@ -235,6 +250,7 @@ public/                    Favicon, OG image, robots.txt, _headers
 worker/index.ts            Cloudflare Worker: /api/appreciate and the counter Durable Object
 worker/limits.ts           Request validation and per-visitor rate limiting
 worker/espn.ts             ESPN scoreboard, box score and career stats parsers
+worker/records.ts          Bengals leaderboards, records he owns, achievements
 wrangler.jsonc             Worker, static assets, 404 page and Durable Object config
 check.html                 Dev-only real-player embed check (not deployed)
 scripts/check-clips.ts     Existence check for every clip and post
