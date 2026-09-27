@@ -1,12 +1,23 @@
-// Cloudflare Workers config. The site is fully static: Workers serves the Vite build from dist/,
-// including the security headers in dist/_headers (copied from public/_headers). Unknown URLs get
-// dist/404.html with a 404 status.
+// Cloudflare Workers config. Static files are served straight from dist/ (the Vite build),
+// including the security headers in dist/_headers; unknown URLs get dist/404.html with a 404.
+// Only /api/* runs the Worker in worker/index.ts, which backs the Appreciate counter.
 {
-  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "appreciatejoeburrow",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-09-01",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"],
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "APPRECIATION", "class_name": "AppreciationCounter" }],
+  },
+  // New Durable Object classes only take effect on `wrangler deploy` (the main-branch deploy),
+  // not on `wrangler versions upload` (PR previews).
+  "exports": {
+    "AppreciationCounter": { "type": "durable-object", "storage": "sqlite" },
   },
 }

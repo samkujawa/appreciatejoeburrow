@@ -3,6 +3,7 @@ import '@fontsource/barlow-condensed/latin-500.css';
 import '@fontsource/barlow-condensed/latin-700.css';
 import './styles/index.css';
 
+import { initAppreciate } from './components/appreciate';
 import { createWall } from './components/wall';
 import { CONFIG } from './config';
 import { CLIPS } from './data/clips';
@@ -100,6 +101,14 @@ function init(): void {
   });
   document.addEventListener('visibilitychange', () => {
     wall.setPageHidden(document.hidden);
+  });
+
+  const countBox = requireElement('#appreciate-count', HTMLParagraphElement);
+  initAppreciate({
+    button: requireElement('#appreciate', HTMLButtonElement),
+    countBox,
+    total: requireElement('.appreciate__total', HTMLElement),
+    mine: requireElement('.appreciate__mine', HTMLElement),
   });
 
   renderPhoto();

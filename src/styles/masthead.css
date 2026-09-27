@@ -51,3 +51,95 @@
   justify-content: center;
   gap: 10px;
 }
+
+/* The Appreciate button and its global count. */
+.appreciate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 6px;
+}
+
+.appreciate__button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 30px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-orange);
+  color: var(--color-ink);
+  font: 700 1.35rem/1 var(--font-label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    transform 0.08s,
+    background-color 0.15s;
+}
+.appreciate__button:hover {
+  background: var(--color-bone);
+}
+.appreciate__button:active {
+  transform: scale(0.95);
+}
+.appreciate__icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* "+1" that floats up from the button on each tap. */
+.appreciate__pop {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  color: var(--color-orange);
+  font: 900 1.4rem/1 var(--font-display);
+  pointer-events: none;
+  animation: appreciate-pop 0.7s ease-out forwards;
+}
+@keyframes appreciate-pop {
+  from {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--x, 0px)), 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--x, 0px)), -48px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .appreciate__pop {
+    display: none;
+  }
+}
+
+.appreciate__count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.appreciate__total {
+  color: var(--color-bone);
+  font: 900 clamp(2.2rem, 7vw, 3.4rem) / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.appreciate__mine {
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+  opacity: 0.8;
+}
+.appreciate__mine:empty {
+  display: none;
+}

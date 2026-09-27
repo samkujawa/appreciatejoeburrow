@@ -3,7 +3,8 @@
 A wall of Joe Burrow highlights; YouTube videos playing all at once, mixed with NFL clips from X —
 in a different order every visit.
 
-Static site built with Vite and TypeScript. No framework, no backend, no cookies.
+Built with Vite and TypeScript: a static site plus one tiny Cloudflare Worker for the Appreciate
+counter. No framework, no cookies.
 
 ## Getting started
 
@@ -12,6 +13,10 @@ nvm use          # Node 22
 npm install
 npm run dev      # http://localhost:5173
 ```
+
+The Appreciate counter needs the Worker. To run it locally too, start `npm run worker:dev` (serves
+the built site plus `/api` on http://localhost:8787, needs Node 22) and `npm run dev` proxies `/api`
+to it.
 
 | Script                | What it does                                        |
 | --------------------- | --------------------------------------------------- |
@@ -55,6 +60,16 @@ npm run dev      # http://localhost:5173
     instead of ~87.
   - Players pause when off screen or when the tab is hidden. All of these numbers are in
     `src/config.ts`.
+- **Appreciate button.** A global counter under the tagline (`components/appreciate.ts`). Every tap
+  shows instantly with a "+1" and is sent in batches (at most one request every ~0.8s, 25 taps
+  each), so mashing the button costs a few requests. The Worker (`worker/index.ts`) keeps the
+  count in a SQLite-backed **Durable Object**: a single instance that handles requests in order,
+  so simultaneous taps are never lost (tested with 200 concurrent requests). Abuse limits in
+  `worker/limits.ts`: 25 taps per request, 240 per visitor per minute (tracked by IP in memory
+  only, never stored), and POSTs from other sites are refused. Reads are cached at the edge for 5
+  seconds. Each visitor's own tally is kept in `localStorage`. If the API is unreachable, the
+  button still animates and the count stays hidden. Fits Cloudflare's free plan (100k requests
+  and 100k writes a day).
 - **Last game.** `src/data/last-game.ts` names the most recent game (label, result, date) and
   lists the IDs of its clips and posts, which must also be in the clip lists. Those tiles are
   pinned to the top with a **Last game** label under a banner. The section hides itself 10 days
@@ -177,6 +192,7 @@ index.html                 Page markup and meta tags
 src/
   main.ts                  Wires up the wall, buttons and page visibility
   config.ts                Photo, preload distance, timeouts
+  components/appreciate.ts The Appreciate button and count
   data/clips.ts            YouTube videos
   data/posts.ts            X posts
   components/wall.ts       Tile lifecycle: lazy players, pause/play, removal
@@ -188,6 +204,9 @@ src/
   lib/random.ts            Shuffle and seeded RNG
   styles/                  Tokens, base, masthead, wall, footer
 public/                    Favicon, OG image, robots.txt, _headers
+worker/index.ts            Cloudflare Worker: /api/appreciate and the counter Durable Object
+worker/limits.ts           Request validation and per-visitor rate limiting
+wrangler.jsonc             Worker, static assets, 404 page and Durable Object config
 check.html                 Dev-only real-player embed check (not deployed)
 scripts/check-clips.ts     Existence check for every clip and post
 scripts/check-embeds.ts    Script behind check.html
