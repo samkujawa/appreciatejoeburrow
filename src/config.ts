@@ -3,7 +3,9 @@ export const CONFIG = {
    * Optional headshot shown above the title. Put the file in /public and set the path,
    * e.g. '/joe-photo.jpg'. Leave null to hide it.
    */
-  photoSrc: null as string | null,
+  // Official White House photo (public domain), cropped to 256×256:
+  // https://commons.wikimedia.org/wiki/File:LSU_Football_at_the_White_House_(49400533066)_(cropped).jpg
+  photoSrc: '/joe-photo.jpg' as string | null,
 
   /** Players are created when a tile gets this close to the viewport. */
   preloadMargin: '150px 0px',
