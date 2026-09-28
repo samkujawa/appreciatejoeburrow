@@ -72,12 +72,6 @@
   text-transform: uppercase;
   color: var(--color-orange);
 }
-.about__sign {
-  color: var(--color-muted);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
 
 /* Instagram link in the footer. */
 .footer__social {
