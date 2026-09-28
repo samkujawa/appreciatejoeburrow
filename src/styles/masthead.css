@@ -31,20 +31,6 @@
   color: var(--color-orange);
 }
 
-.masthead__tagline {
-  margin: 0;
-  font-weight: 500;
-  font-size: clamp(0.95rem, 2.2vw, 1.2rem);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  line-height: 1.45;
-}
-.masthead__tagline strong {
-  color: var(--color-bone);
-  font-weight: 700;
-}
-
 .masthead__controls {
   display: flex;
   flex-wrap: wrap;
