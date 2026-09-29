@@ -23,6 +23,7 @@ export const POSTS: readonly Post[] = [
   { id: '1858362961716461705', title: '5.39 seconds, then a TD to Chase' },
   { id: '1477717448665145344', title: 'To Chase again vs. KC · 2021' },
   { id: '1930002280855810150', title: 'Burrow to Chase is back' },
+  { id: '2104260126420947210', title: 'Opens the scoring at Pittsburgh · 2026' },
 
   // Plays: everyone else
   { id: '1873172510394728764', title: 'To Tee Higgins for the win' },
@@ -33,6 +34,8 @@ export const POSTS: readonly Post[] = [
   { id: '1870911219642622317', title: 'Playing a different game' },
   { id: '1870975236218474910', title: '"I might have to post that one"' },
   { id: '1931441029443662289', title: 'Burrow vs. Lamar, 2024' },
+  { id: '2104277839864553567', title: 'Circus catch ties it before half · 2026' },
+  { id: '2104292506850521531', title: '4th-down TD gives Bengals the lead · 2026' },
 
   // Plays: on the run
   { id: '1845625857785663983', title: '47-yard TD run at 19.86 mph' },
