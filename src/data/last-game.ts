@@ -17,8 +17,8 @@ export interface LastGame {
  * each game; set it to null to turn the section off.
  */
 export const LAST_GAME: LastGame | null = {
-  label: 'Week 3 at Pittsburgh',
-  result: 'L 27–30',
-  date: '2026-09-27',
-  ids: ['2104277839864553567', '2104292506850521531', '2104260126420947210'],
+  label: 'Week 5 at Miami',
+  result: 'W 31–24',
+  date: '2026-10-11',
+  ids: ['2109363799849619831'],
 };
