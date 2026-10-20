@@ -24,6 +24,7 @@ export const POSTS: readonly Post[] = [
   { id: '1477717448665145344', title: 'To Chase again vs. KC · 2021' },
   { id: '1930002280855810150', title: 'Burrow to Chase is back' },
   { id: '2104260126420947210', title: 'Opens the scoring at Pittsburgh · 2026' },
+  { id: '2109363799849619831', title: 'One-handed TD to Chase at Miami · 2026' },
 
   // Plays: everyone else
   { id: '1873172510394728764', title: 'To Tee Higgins for the win' },
